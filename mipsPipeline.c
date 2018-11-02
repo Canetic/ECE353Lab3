@@ -15,7 +15,7 @@ voidWB();
 int main(void){
 	// everytime a cycle goes through increment by 1
 	int counter =0;
-	char cat = "jela";
+	
 	
 }
 char *progScanner()
