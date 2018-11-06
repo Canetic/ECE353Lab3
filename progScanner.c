@@ -1,7 +1,7 @@
 /*
  ============================================================================
  Name        : test.c
- Author      : Angus Mo
+ Author      : 
  Version     : 0.6
  Copyright   : Your copyright notice
  Description :
@@ -18,28 +18,30 @@
 char *progScanner(char *input){
 
 	char *token;
-	char *result;
+	char *retString;
 
 	//int memOp;
 	//char *openP, *closeP;
 	//int match;
 
-	result = (char *)malloc(strlen(input)*sizeof(char));
+	retString = (char *)malloc(strlen(input)*sizeof(char));
 	const char delim[2] = {',',' '};
 
 	token = strtok(input, delim);
+	strcpy(retString, token);
+	token = strtok(NULL, delim);
 	//memOp = (strcmp(token, "lw") == 0) ? 1: 0;
 	//memOp |= (strcmp(token, "sw") == 0) ? 1: 0;
 	do{
-		strcat(result, token);
-		strcat(result, " ");
+		strcat(retString, " ");
+		strcat(retString, token);
 		token = strtok(NULL, delim);
 	}while(token != NULL);
 
 	/*
 	if(memOp){
-		openP = strchr(result, '(');
-		closeP = strrchr(result, ')');
+		openP = strchr(retString, '(');
+		closeP = strrchr(retString, ')');
 		assert(openP != NULL);
 
 		assert(closeP != NULL);
@@ -48,7 +50,7 @@ char *progScanner(char *input){
 
 	}
 	*/
-	return result;
+	return retString;
 
 }
 
@@ -58,11 +60,13 @@ int main(int argc, char *argv[]){
 	input = fopen(argv[1], "r");
 	assert(input != NULL);
 	char *line;
+	line = (char *)malloc(64*sizeof(char));
 
-	while(fgets(line, 64, input) != NULL){
+	while(fgets(line, 64, input)){
 		printf("%s", progScanner(line));
 	}
 
+	free(line);
 	fclose(input);
 	return 0;
 }
