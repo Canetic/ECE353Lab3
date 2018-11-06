@@ -1,7 +1,7 @@
 /*
  ============================================================================
  Name        : test.c
- Author      : 
+ Author      :
  Version     : 0.6
  Copyright   : Your copyright notice
  Description :
@@ -15,45 +15,60 @@
 #include <ctype.h>
 #include <assert.h>
 
-char *progScanner(char *input){
 
+struct inst{
+	int opcode;
+	int rs;
+	int rd;
+	int Imm;
+};
+
+char *progScanner(char *line){
 	char *token;
 	char *retString;
 
-	//int memOp;
-	//char *openP, *closeP;
-	//int match;
-
-	retString = (char *)malloc(strlen(input)*sizeof(char));
+	//set memory for the return string
+	retString = (char *)malloc(strlen(line)*sizeof(char));
+	//declare the delimiters
 	const char delim[2] = {',',' '};
 
-	token = strtok(input, delim);
+	//copy the opcode into the return string
+	token = strtok(line, delim);
 	strcpy(retString, token);
-	//memOp = (strcmp(token, "lw") == 0) ? 1: 0;
-	//memOp |= (strcmp(token, "sw") == 0) ? 1: 0;
+
+	//find the next parameter
 	token = strtok(NULL, delim);
 	while(token != NULL){
+		//continue adding parameters separated by a single space
 		strcat(retString, " ");
 		strcat(retString, token);
 		token = strtok(NULL, delim);
 	}
 
-	/*
-	if(memOp){
-		openP = strchr(retString, '(');
-		closeP = strrchr(retString, ')');
-		assert(openP != NULL);
-
-		assert(closeP != NULL);
-		match = strcmp(openP,closeP-4);
-		assert(!match);
-
-	}
-	*/
+	//return the resulting formatted string
 	return retString;
-
 }
 
+struct inst parser(char *instStr){
+	struct inst instruction;
+	//int memOp;
+		//char *openP, *closeP;
+		//int match;
+	//memOp = (strcmp(token, "lw") == 0) ? 1: 0;
+		//memOp |= (strcmp(token, "sw") == 0) ? 1: 0;
+	/*
+		if(memOp){
+			openP = strchr(retString, '(');
+			closeP = strrchr(retString, ')');
+			assert(openP != NULL);
+
+			assert(closeP != NULL);
+			match = strcmp(openP,closeP-4);
+			assert(!match);
+
+		}
+		*/
+}
 
 int main(int argc, char *argv[]){
 	FILE *input;
