@@ -29,14 +29,14 @@ char *progScanner(char *input){
 
 	token = strtok(input, delim);
 	strcpy(retString, token);
-	token = strtok(NULL, delim);
 	//memOp = (strcmp(token, "lw") == 0) ? 1: 0;
 	//memOp |= (strcmp(token, "sw") == 0) ? 1: 0;
-	do{
+	token = strtok(NULL, delim);
+	while(token != NULL){
 		strcat(retString, " ");
 		strcat(retString, token);
 		token = strtok(NULL, delim);
-	}while(token != NULL);
+	}
 
 	/*
 	if(memOp){
