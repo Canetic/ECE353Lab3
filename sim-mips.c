@@ -4,7 +4,7 @@
  Author      : Angus Mo, Karl Shao, Timothy Shum, O-Dom Pin
  Version     :
  Description : MIPS data path simulator that can run in both single cycle and
- 	 	 	   batch mode
+ 	       batch mode
  ============================================================================
  */
 
@@ -20,7 +20,7 @@
 #define SINGLE 1
 #define BATCH 0
 #define REG_NUM 32
-main (int argc, char *argv[]){
+int main (int argc, char *argv[]){
 	int sim_mode = 0; //mode flag, 1 for single-cycle, 0 for batch
 	int c, m, n;
 	int i; //for loop counter
@@ -40,10 +40,10 @@ main (int argc, char *argv[]){
 	printf("\n");
 	if(argc==7){
 		if(strcmp("-s",argv[1])==0){
-			sim_mode=SINGLE;
+			sim_mode = SINGLE;
 		}
 		else if(strcmp("-b",argv[1])==0){
-			sim_mode=BATCH;
+			sim_mode = BATCH;
 		}
 		else{
 			printf("Wrong sim mode chosen\n");
@@ -72,9 +72,9 @@ main (int argc, char *argv[]){
 		exit(0);
 	}
 	//initialize registers and program counter
-	if(sim_mode==1){
-		for (i=0;i<REG_NUM;i++){
-			mips_reg[i]=0;
+	if(sim_mode == SINGLE){
+		for (i = 0; i < REG_NUM; i++){
+			mips_reg[i] = 0;
 		}
 	}
 
