@@ -79,13 +79,13 @@ int regNumberConverter(char *reg)
 	printf("\n%s\n", reg);
 	puts(token);
 
-	if(strlen(token) > 2 && strcmp(token, "zero"))
+	if(strlen(token) > 2 && strcmp(token, "zero") || reg[0] != '$')
 	{
 		puts("Incorrect register syntax");
 		exit(0);
 	}
 
-	if((atoi(token) <= 25 && atoi(token) >= 10) || !strcmp(token, "8") || !strcmp(token, "9"))
+	if((atoi(token) <= 25 && atoi(token) >= 10) || !strcmp(token, "0") || !strcmp(token, "8") || !strcmp(token, "9"))
 	{
 		regNum = atoi(token);
 	} else {
