@@ -50,24 +50,95 @@ char *progScanner(char *line){
 }
 
 struct inst parser(char *instStr){
-	struct inst instruction;
-	//int memOp;
-		//char *openP, *closeP;
-		//int match;
-	//memOp = (strcmp(token, "lw") == 0) ? 1: 0;
-		//memOp |= (strcmp(token, "sw") == 0) ? 1: 0;
-	/*
-		if(memOp){
-			openP = strchr(retString, '(');
-			closeP = strrchr(retString, ')');
-			assert(openP != NULL);
+		struct inst instruction;
+	char *opField;
+	char *sourceReg;
+	char *destReg;
+	char *tempReg;
+	char *Imm;
+	char *memField;
 
-			assert(closeP != NULL);
-			match = strcmp(openP,closeP-4);
-			assert(!match);
+	opField = strtok(instStr, " ");
 
+	switch(opField[0]){
+	case 'a':
+		if(strcmp(opField+1, "dd") == 0){
+			instruction.opcode = add;
+			break;
+		} else if(strcmp(opField+1, "ddi") == 0){
+			instruction.opcode = addi;
+			break;
 		}
-		*/
+	case 's':
+		if(strcmp(opField+1, "ub") == 0){
+			instruction.opcode = sub;
+			break;
+		} else if(strcmp(opField+1, "w") == 0){
+			instruction.opcode = sw;
+			break;
+		}
+	case 'b':
+		if(strcmp(opField+1, "eq") == 0){
+			instruction.opcode = beq;
+			break;
+		}
+	case 'l':
+		if(strcmp(opField+1, "w") == 0){
+			instruction.opcode = lw;
+		} else{
+			instruction.opcode = -1;
+			return instruction;
+		}
+		break;
+	case 'm':
+		if(strcmp(opField+1, "ult") == 0){
+			instruction.opcode = mult;
+			break;
+		}
+	case 'h':
+		if(strcmp(opField+1, "altsimulation") == 0){
+			instruction.opcode = haltsimulation;
+			return instruction;
+		}
+	default:
+		instruction.opcode = -1;
+		return instruction;
+		break;
+	}
+
+	sourceReg = strtok(NULL, " ");
+	tempReg = strtok(NULL, " ");
+
+	switch(instruction.opcode){
+	case lw:
+	case sw:
+		strcpy(memField, tempReg);
+		char *openP, *closeP;
+		int match;
+		openP = strchr(memField, '(');
+		closeP = strrchr(memField, ')');
+		assert(openP != NULL);
+		assert(closeP != NULL);
+		match = strcmp(openP,closeP-4);
+		assert(!match);
+
+		break;
+	case beq:
+	case addi:
+		break;
+	case mult:
+		break;
+	case add:
+	case sub:
+		destReg = strtok(NULL, " ");
+		break;
+	default:
+		break;
+	}
+
+
+
+	return instruction;
 }
 
 int regNumberConverter(char *reg)
