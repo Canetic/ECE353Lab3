@@ -19,7 +19,7 @@
 struct inst{
 	int opcode;
 	int rs;
-	int rt
+	int rt;
 	int rd;
 	int Imm;
 };
