@@ -1,6 +1,6 @@
 /*
  ============================================================================
- Name        : test.c
+ Name        : example.c
  Author      :
  Version     : 0.6
  Copyright   : Your copyright notice
@@ -149,8 +149,6 @@ int regNumberConverter(char *reg)
 	char *token;
 	char *delims = " $";
 	token = strtok(reg, delims);
-	printf("\n%s\n", reg);
-	puts(token);
 
 	if(strlen(token) > 2 && strcmp(token, "zero") || reg[0] != '$')
 	{
@@ -365,16 +363,16 @@ int main(int argc, char *argv[])
 		fmtLine = (char *)malloc(64*sizeof(char));
 		fmtLine = progScanner(strdup(line));
 		printf("%s\n", fmtLine);
-		free(fmtLine);
 
-		temp = parser(progScanner(fmtLine));
+
+		temp = parser(fmtLine);
 		errorCheck(argv[1], lineNum, strtok(line,"\r\n"));
+		free(fmtLine);
 		lineNum++;
 
 	}
 
 	free(line);
-	free(fmtLine);
 	fclose(input);
 	return 0;
 }
