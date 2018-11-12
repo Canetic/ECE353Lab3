@@ -17,6 +17,7 @@
 
 enum op {add=0x20, addi=0x8, sub=0x22, mult=0x18, beq=0x4, lw=0x23,
 	sw=0x2b, haltsimulation=0xff};
+int errorCode = 0;
 
 struct inst{
 	int opcode;
@@ -25,6 +26,29 @@ struct inst{
 	unsigned int rd;
 	int Imm;
 };
+
+void errorCheck(char *fileName, int lineNumber, char *line){
+	if(errorCode == 0){
+		return;
+	}
+	printf("%s:%d \"%s\"\nerror:  ", fileName, lineNumber, line);
+	switch(errorCode){
+	case 'p':
+		puts("Mismatched parentheses");
+		exit(0);
+		break;
+	case 'r':
+		puts("Incorrect register syntax");
+		exit(0);
+		break;
+	case 'o':
+		puts("Invalid opcode");
+		exit(0);
+		break;
+	default:
+		break;
+	}
+}
 
 int parenthesisMatch(char *memField){
 	char **parenthesis;
@@ -74,7 +98,7 @@ char *progScanner(char *inputLine){
 	char *retLine;
 	retLine = (char *)malloc(256*sizeof(char));
 	tokens = (char **)malloc(10*sizeof(char *));
-	char delims[] = {',',' '};
+	char delims[] = {',',' ','\n','\r'};
 	int i,j,k;
 	int memOp;
 	for(i = 0; i < 10; i++){
@@ -95,6 +119,7 @@ char *progScanner(char *inputLine){
 		j = 0;
 		if(memOp && i == 2){
 			if(!parenthesisMatch(tokens[i])){
+				errorCode = 'p';
 				return NULL;
 			}
 			char c;
@@ -118,108 +143,6 @@ char *progScanner(char *inputLine){
 	return retLine;
 }
 
-struct inst parser(char *instStr)
-{
-	struct inst instruction;
-	char *opField;
-	char *regFields[3];
-	char *Imm;
-	char *memField;
-
-	opField = strtok(instStr, " ");
-
-
-	switch(opField[0]){
-	case 'a':
-		if(strcmp(opField+1, "dd") == 0){
-			instruction.opcode = add;
-			break;
-		} else if(strcmp(opField+1, "ddi") == 0){
-			instruction.opcode = addi;
-			break;
-		}
-	case 's':
-		if(strcmp(opField+1, "ub") == 0){
-			instruction.opcode = sub;
-			break;
-		} else if(strcmp(opField+1, "w") == 0){
-			instruction.opcode = sw;
-			break;
-		}
-	case 'b':
-		if(strcmp(opField+1, "eq") == 0){
-			instruction.opcode = beq;
-			break;
-		}
-	case 'l':
-		if(strcmp(opField+1, "w") == 0){
-			instruction.opcode = lw;
-		} else{
-			instruction.opcode = -1;
-			return instruction;
-		}
-		break;
-	case 'm':
-		if(strcmp(opField+1, "ult") == 0){
-			instruction.opcode = mult;
-			break;
-		}
-	case 'h':
-		if(strcmp(opField+1, "altsimulation") == 0){
-			instruction.opcode = haltsimulation;
-			return instruction;
-		}
-	default:
-		instruction.opcode = -1;
-		return instruction;
-		break;
-	}
-
-	regFields[0] = strtok(NULL, " ");
-
-	switch(instruction.opcode){
-	case lw:
-	case sw:
-		Imm = strtok(NULL, " ");
-		regFields[1] = strtok(NULL, " ");
-		instruction.rt = regNumberConverter(regFields[0]);
-		instruction.rs = regNumberConverter(regFields[1]);
-		instruction.Imm = (int)atoi(Imm);
-		break;
-	case beq:
-		regFields[1] = strtok(NULL, " ");
-		Imm = strtok(NULL, " ");
-		instruction.rs = regNumberConverter(regFields[0]);
-		instruction.rt = regNumberConverter(regFields[1]);
-		instruction.Imm = (int)atoi(Imm);
-		break;
-	case addi:
-		regFields[1] = strtok(NULL, " ");
-		Imm = strtok(NULL, " ");
-		instruction.rt = regNumberConverter(regFields[0]);
-		instruction.rs = regNumberConverter(regFields[1]);
-		instruction.Imm = (int)atoi(Imm);
-		break;
-	case mult:
-		regFields[1] = strtok(NULL, " ");
-		instruction.rs = regNumberConverter(regFields[0]);
-		instruction.rt = regNumberConverter(regFields[1]);
-		break;
-	case add:
-	case sub:
-		regFields[1] = strtok(NULL, " ");
-		regFields[2] = strtok(NULL, " ");
-		instruction.rd = regNumberConverter(regFields[0])
-		instruction.rs = regNumberConverter(regFields[1]);
-		instruction.rt = regNumberConverter(regFields[2]);
-		break;
-	default:
-		break;
-	}
-
-	return instruction;
-}
-
 int regNumberConverter(char *reg)
 {
 	int regNum = -1;
@@ -231,8 +154,8 @@ int regNumberConverter(char *reg)
 
 	if(strlen(token) > 2 && strcmp(token, "zero") || reg[0] != '$')
 	{
-		puts("Incorrect register syntax");
-		exit(0);
+		errorCode = 'r';
+		return regNum;
 	}
 
 	if((atoi(token) <= 25 && atoi(token) >= 10) || !strcmp(token, "0") || !strcmp(token, "8") || !strcmp(token, "9"))
@@ -320,10 +243,111 @@ int regNumberConverter(char *reg)
 
 	if(regNum == -1)
 	{
-		puts("Incorrect register syntax");
-		exit(0);
+		errorCode = 'r';
 	}
 	return regNum;
+}
+
+struct inst parser(char *instStr)
+{
+	struct inst instruction;
+	char *opField;
+	char *regFields[3];
+	char *Imm;
+	char *memField;
+
+	opField = strtok(instStr, " ");
+
+
+	switch(opField[0]){
+	case 'a':
+		if(strcmp(opField+1, "dd") == 0){
+			instruction.opcode = add;
+			break;
+		} else if(strcmp(opField+1, "ddi") == 0){
+			instruction.opcode = addi;
+			break;
+		}
+	case 's':
+		if(strcmp(opField+1, "ub") == 0){
+			instruction.opcode = sub;
+			break;
+		} else if(strcmp(opField+1, "w") == 0){
+			instruction.opcode = sw;
+			break;
+		}
+	case 'b':
+		if(strcmp(opField+1, "eq") == 0){
+			instruction.opcode = beq;
+			break;
+		}
+	case 'l':
+		if(strcmp(opField+1, "w") == 0){
+			instruction.opcode = lw;
+		} else{
+			instruction.opcode = -1;
+			return instruction;
+		}
+		break;
+	case 'm':
+		if(strcmp(opField+1, "ult") == 0){
+			instruction.opcode = mult;
+			break;
+		}
+	case 'h':
+		if(strcmp(opField+1, "altsimulation") == 0){
+			instruction.opcode = haltsimulation;
+			return instruction;
+		}
+	default:
+		errorCode = 'o';
+		return instruction;
+		break;
+	}
+
+	regFields[0] = strtok(NULL, " ");
+
+	switch(instruction.opcode){
+	case lw:
+	case sw:
+		Imm = strtok(NULL, " ");
+		regFields[1] = strtok(NULL, " ");
+		instruction.rt = regNumberConverter(regFields[0]);
+		instruction.rs = regNumberConverter(regFields[1]);
+		instruction.Imm = (int)atoi(Imm);
+		break;
+	case beq:
+		regFields[1] = strtok(NULL, " ");
+		Imm = strtok(NULL, " ");
+		instruction.rs = regNumberConverter(regFields[0]);
+		instruction.rt = regNumberConverter(regFields[1]);
+		instruction.Imm = (int)atoi(Imm);
+		break;
+	case addi:
+		regFields[1] = strtok(NULL, " ");
+		Imm = strtok(NULL, " ");
+		instruction.rt = regNumberConverter(regFields[0]);
+		instruction.rs = regNumberConverter(regFields[1]);
+		instruction.Imm = (int)atoi(Imm);
+		break;
+	case mult:
+		regFields[1] = strtok(NULL, " ");
+		instruction.rs = regNumberConverter(regFields[0]);
+		instruction.rt = regNumberConverter(regFields[1]);
+		break;
+	case add:
+	case sub:
+		regFields[1] = strtok(NULL, " ");
+		regFields[2] = strtok(NULL, " ");
+		instruction.rd = regNumberConverter(regFields[0]);
+		instruction.rs = regNumberConverter(regFields[1]);
+		instruction.rt = regNumberConverter(regFields[2]);
+		break;
+	default:
+		break;
+	}
+
+	return instruction;
 }
 
 int main(int argc, char *argv[])
@@ -344,7 +368,7 @@ int main(int argc, char *argv[])
 		free(fmtLine);
 
 		temp = parser(progScanner(fmtLine));
-
+		errorCheck(argv[1], lineNum, strtok(line,"\r\n"));
 		lineNum++;
 
 	}
