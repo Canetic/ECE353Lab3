@@ -301,7 +301,7 @@ int regNumberConverter(char *reg)
 	//if none of the cases match, note the error
 	if(regNum == -1)
 	{
-		errorCode = 'R';
+		errorCode = 'r';
 	}
 	return regNum;
 }
@@ -456,10 +456,6 @@ void fileParser(FILE *fp, char *fileName){
 				break;
 			case 'r':
 				puts("Incorrect register syntax");
-				exit(0);
-				break;
-			case 'R':
-				puts("Register value out of range");
 				exit(0);
 				break;
 			default:
