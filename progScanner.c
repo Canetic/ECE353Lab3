@@ -1,9 +1,8 @@
 /*
  ============================================================================
- Name        : example.c
+ Name        : progScan.c
  Author      :
- Version     : 0.6
- Copyright   : Your copyright notice
+ Version     : 11.14
  Description :
  ============================================================================
  */
@@ -15,9 +14,10 @@
 #include <ctype.h>
 #include <assert.h>
 
+//define a set of opcodes
 enum op {add=0x20, addi=0x8, sub=0x22, mult=0x18, beq=0x4, lw=0x23,
 	sw=0x2b, haltsimulation=0xff};
-int errorCode = 0;
+int errorCode = 0;	//variable holding the error code during program execution
 
 struct inst{
 	int opcode;
@@ -27,33 +27,43 @@ struct inst{
 	int Imm;
 };
 
-void errorCheck(char *fileName, int lineNumber, char *line){
-	if(errorCode == 0){
-		return;
+//Function to determine and validate the immediate field//
+int immediateParse(char *immediate){
+	char *ptr = immediate;
+	int isValid = 1;
+	int Imm;
+	//test if the string is NULL
+	if(immediate == NULL){
+		return 0;
+		//check for '+' and '-' signs
+	} else if(strdup(strtok(immediate,"+-")) != NULL){
+		ptr = strtok(immediate,"+-");
 	}
-	printf("%s:%d \"%s\"\nerror:  ", fileName, lineNumber, line);
-	switch(errorCode){
-	case 'p':
-		puts("Mismatched parentheses");
-		exit(0);
-		break;
-	case 'r':
-		puts("Incorrect register syntax");
-		exit(0);
-		break;
-	case 'o':
-		puts("Invalid opcode");
-		exit(0);
-		break;
-	default:
-		break;
+
+	//test each character to determine if the immediate is a numerical integer
+	while(*ptr != '\0'){
+		isValid &= !(isalpha(*ptr)) && (*ptr != '.');
+		ptr++;
 	}
+	if(isValid){
+		Imm = (int)atoi(immediate);
+		//determine if the immediate is out of bounds
+		if(abs(Imm) < 0x10000){
+			return Imm;
+		}
+	}
+	errorCode = 'i';
+	return 0;
 }
 
+//Function to test whether the memory operation field is in the correct format//
 int parenthesisMatch(char *memField){
+	//setup 2 test cases, 2 for each parentheses type
 	char **parenthesis;
 	parenthesis = (char **)malloc(4*sizeof(char *));
 	int i, match1,match2;
+	//mathc variables
+	int p,p1,p2;
 	for(i = 0; i < 4; i++){
 		parenthesis[i] = (char *)malloc(10*sizeof(char));
 		if(i % 2 == 0){
@@ -63,65 +73,102 @@ int parenthesisMatch(char *memField){
 		}
 	}
 
+	p1 = 0;
+	p2 = 0;
+	//determine if the open parentheses match, if any
 	do{
+		//search from the left
 		if(*parenthesis[0] != '('){
 			parenthesis[0]++;
+		} else{
+			p1 = 1;
 		}
+		//search from the right
 		if(*parenthesis[1] != '('){
 			parenthesis[1]--;
 		} else{
-			break;
+			p2 = 1;
 		}
-	}while(parenthesis[1] >= parenthesis[0]);
-
+		p = p1&p2;
+		//stop when the pointers cross or when both parentheses are found
+	}while((parenthesis[1] > parenthesis[0]) && !p);
+	//determine if the parentheses match, this should be 0
 	match1 = parenthesis[1]-parenthesis[0];
 
+	p1 = 0;
+	p2 = 0;
+	//determine if the close parentheses match, if any
 	do{
+		//search from the right
 		if(*parenthesis[3] != ')'){
 			parenthesis[3]--;
+		} else{
+			p1 = 1;
 		}
+		//search from the left
 		if(*parenthesis[2] != ')'){
 			parenthesis[2]++;
 		} else{
-			break;
+			p2 = 1;
 		}
-	}while(parenthesis[3] >= parenthesis[2]);
-
+		//stop when the pointers cross or when both parentheses are found
+	}while((parenthesis[3] > parenthesis[2]) && !p);
+	//determine if the parentheses match, this should be 0
 	match2 = parenthesis[3]-parenthesis[2];
 
 	free(parenthesis);
+	//return if both match
 	return (match1 == 0) && (match2 == 0);
 }
 
 char *progScanner(char *inputLine){
-	char **tokens;
-	char *retLine;
-	retLine = (char *)malloc(256*sizeof(char));
+	char **tokens;	//declare the parameter array
+	char *retLine;	//declare the formatted string variable
+	retLine = (char *)malloc(100*sizeof(char));
 	tokens = (char **)malloc(10*sizeof(char *));
-	char delims[] = {',',' ','\n','\r'};
+	//decalre the delimeters
+	char delims[] = {',',' ','\r','\n'};
 	int i,j,k;
 	int memOp;
 	for(i = 0; i < 10; i++){
 		tokens[i] = (char *)malloc(256*sizeof(char));
 	}
 
+	//determine the first parameter, this should be the opcode
 	i = 0;
 	tokens[i] = strtok(inputLine, delims);
+	//return null character if the input instruction is whitespace
+	if(!tokens[i] || !strcmp(tokens[i],"")){
+		*retLine = '\0';
+		return retLine;
+	}
+	//determine whether or not this is a memory operation
 	memOp = (strcmp(tokens[i], "lw") == 0) ? 1 : 0;
 	memOp |= (strcmp(tokens[i], "sw") == 0) ? 1 : 0;
+
+	//determine the rest of the parameters
 	while(tokens[i] != NULL){
 		tokens[++i] = strtok(NULL, delims);
+	}
+	//if there are more than 4 parameters, the format is incorrect
+	if(i > 4){
+		errorCode = 'f';
+		return "";
 	}
 
 	i = 0;
 	k = 0;
+	//concatenate the formatted string
 	while(tokens[i] != NULL){
 		j = 0;
+		//perform if this is a memory operation
 		if(memOp && i == 2){
+			//determine if the parentheses match first
 			if(!parenthesisMatch(tokens[i])){
 				errorCode = 'p';
-				return NULL;
+				return "";
 			}
+			//replace all parentheses with a space
 			char c;
 			while(j < (int)strlen(tokens[i])){
 				c = *(tokens[i]+j);
@@ -131,13 +178,16 @@ char *progScanner(char *inputLine){
 			i++;
 			continue;
 		}
+		//append the parameters to the formatted string
 		while(j < (int)strlen(tokens[i])){
 			retLine[k++] = *(tokens[i]+j);
 			j++;
 		}
+		//separate each field by a single space
 		retLine[k++] = ' ';
 		i++;
 	}
+	//add a null character at the end to validate the string
 	retLine[k] = '\0';
 	free(tokens);
 	return retLine;
@@ -150,18 +200,25 @@ int regNumberConverter(char *reg)
 	char *delims = " $";
 	token = strtok(reg, delims);
 
-	if(strlen(token) > 2 && strcmp(token, "zero") || reg[0] != '$')
+	//test whether the string passed in is NULL
+	if(reg == NULL){
+		errorCode = 'f';
+		return regNum;
+		//determine if the register field is the correct format
+	} else if((strlen(token) > 2) && (strcmp(token, "zero")) || (reg[0] != '$'))
 	{
 		errorCode = 'r';
 		return regNum;
 	}
-
+	//determine the register value if it is numerical
 	if((atoi(token) <= 25 && atoi(token) >= 10) || !strcmp(token, "0") || !strcmp(token, "8") || !strcmp(token, "9"))
 	{
 		regNum = atoi(token);
 	} else {
+		//determine the register value if it is symbolic
 		switch(token[0])
 		{
+		//save registers
 		case 's':
 			switch(token[1])
 			{
@@ -193,6 +250,7 @@ int regNumberConverter(char *reg)
 				break;
 			}
 			break;
+			//temporary registers
 			case 't':
 				switch(token[1])
 				{
@@ -230,6 +288,7 @@ int regNumberConverter(char *reg)
 					break;
 				}
 				break;
+				//if the register is zero
 				case 'z':
 					if(!strcmp(token, "zero"))
 						regNum = 0;
@@ -239,9 +298,10 @@ int regNumberConverter(char *reg)
 		}
 	}
 
+	//if none of the cases match, note the error
 	if(regNum == -1)
 	{
-		errorCode = 'r';
+		errorCode = 'R';
 	}
 	return regNum;
 }
@@ -252,11 +312,13 @@ struct inst parser(char *instStr)
 	char *opField;
 	char *regFields[3];
 	char *Imm;
-	char *memField;
 
+	//the string passed in cannot be NULL
+	assert(instStr != NULL);
+	//determine the opcode
 	opField = strtok(instStr, " ");
-
-
+	assert(opField != NULL);
+	//determine if the opcode is valid
 	switch(opField[0]){
 	case 'a':
 		if(strcmp(opField+1, "dd") == 0){
@@ -282,29 +344,30 @@ struct inst parser(char *instStr)
 	case 'l':
 		if(strcmp(opField+1, "w") == 0){
 			instruction.opcode = lw;
-		} else{
-			instruction.opcode = -1;
-			return instruction;
+			break;
 		}
-		break;
 	case 'm':
 		if(strcmp(opField+1, "ult") == 0){
 			instruction.opcode = mult;
 			break;
 		}
 	case 'h':
-		if(strcmp(opField+1, "altsimulation") == 0){
+		//case for haltsimulation command, test if there are any other strings following it
+		if((strcmp(opField+1, "altsimulation") == 0) && (strtok(NULL, " ") == NULL)){
 			instruction.opcode = haltsimulation;
 			return instruction;
 		}
 	default:
+		//if the opcode is invalid note the error
 		errorCode = 'o';
 		return instruction;
 		break;
 	}
 
+	//determine the first register value
 	regFields[0] = strtok(NULL, " ");
-
+	assert(regFields[0] != NULL);
+	//determine the last fields based on the opcode
 	switch(instruction.opcode){
 	case lw:
 	case sw:
@@ -312,27 +375,27 @@ struct inst parser(char *instStr)
 		regFields[1] = strtok(NULL, " ");
 		instruction.rt = regNumberConverter(regFields[0]);
 		instruction.rs = regNumberConverter(regFields[1]);
-		instruction.Imm = (int)atoi(Imm);
+		instruction.Imm = immediateParse(Imm);
 		break;
 	case beq:
 		regFields[1] = strtok(NULL, " ");
 		Imm = strtok(NULL, " ");
 		instruction.rs = regNumberConverter(regFields[0]);
 		instruction.rt = regNumberConverter(regFields[1]);
-		instruction.Imm = (int)atoi(Imm);
+		instruction.Imm = immediateParse(Imm);
 		break;
 	case addi:
 		regFields[1] = strtok(NULL, " ");
 		Imm = strtok(NULL, " ");
 		instruction.rt = regNumberConverter(regFields[0]);
 		instruction.rs = regNumberConverter(regFields[1]);
-		instruction.Imm = (int)atoi(Imm);
+		instruction.Imm = immediateParse(Imm);
 		break;
 	case mult:
-		regFields[1] = strtok(NULL, " ");
-		instruction.rs = regNumberConverter(regFields[0]);
-		instruction.rt = regNumberConverter(regFields[1]);
-		break;
+		//		regFields[1] = strtok(NULL, " ");
+		//		instruction.rs = regNumberConverter(regFields[0]);
+		//		instruction.rt = regNumberConverter(regFields[1]);
+		//		break;
 	case add:
 	case sub:
 		regFields[1] = strtok(NULL, " ");
@@ -348,31 +411,77 @@ struct inst parser(char *instStr)
 	return instruction;
 }
 
+//Function to compile the input file and store into the instruction memory//
+void fileParser(FILE *fp, char *fileName){
+	char *line;
+	char *fmtLine;
+	line = (char *)malloc(100*sizeof(char));
+	struct inst instruction;
+	int lineNum, instrAddr;
+
+	lineNum = 1;
+	instrAddr = 0;
+	while(fgets(line, 100, fp)){
+		fmtLine = (char *)malloc(100*sizeof(char));
+		//format the input instruction
+		fmtLine = progScanner(strdup(line));
+		//continue only if the formatted string isn't NULL
+		assert(fmtLine != NULL);
+
+		//load valid instructions into the instruction memory if it isn't full
+		if((strcmp(fmtLine, "")!=0) && (instrAddr < 512)){
+			instruction = parser(fmtLine);
+			instrAddr++;
+		}
+
+		//check for errors before continuing
+		if(errorCode != 0){
+			printf("%s:%d \"%s\"\nerror: ", fileName, lineNum, strtok(line,"\r\n"));
+			switch(errorCode){
+			case 'f':
+				puts("Incorrect instruction format");
+				exit(0);
+				break;
+			case 'i':
+				puts("Immediate must be and integer between -65,535 and 65,534");
+				exit(0);
+				break;
+			case 'o':
+				puts("Invalid opcode");
+				exit(0);
+				break;
+			case 'p':
+				puts("Mismatched parentheses");
+				exit(0);
+				break;
+			case 'r':
+				puts("Incorrect register syntax");
+				exit(0);
+				break;
+			case 'R':
+				puts("Register value out of range");
+				exit(0);
+				break;
+			default:
+				break;
+			}
+		}
+		free(fmtLine);
+		lineNum++;
+	}
+
+	free(line);
+	return;
+}
+
 int main(int argc, char *argv[])
 {
 	FILE *input;
 	input = fopen(argv[1], "r");
 	assert(input != NULL);
-	char *line;
-	char *fmtLine;
-	line = (char *)malloc(64*sizeof(char));
-	struct inst temp;
 
-	unsigned int lineNum = 1;
-	while(fgets(line, 64, input)){
-		fmtLine = (char *)malloc(64*sizeof(char));
-		fmtLine = progScanner(strdup(line));
-		printf("%s\n", fmtLine);
+	fileParser(input, argv[1]);
 
-
-		temp = parser(fmtLine);
-		errorCheck(argv[1], lineNum, strtok(line,"\r\n"));
-		free(fmtLine);
-		lineNum++;
-
-	}
-
-	free(line);
 	fclose(input);
 	return 0;
 }
