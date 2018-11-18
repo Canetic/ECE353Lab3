@@ -479,20 +479,40 @@ void MEM(struct inst * instruction)
 {
 	//c cycles
 	int reg;
+	int address;
 	*instruction = parser(instruction);
-	reg = regNumberConverter(instruction.
+	//sign immediate and register to find address 
+	address = instruction.rs+instruction.immediate;
+	
 	if(instruction.opcode == lw)
-		//the instruction rs needs to be a memory address
-		registers[instruction.rt] = instruction.rs;
+		
+		registers[instruction.rt] = dataMemory[address];
 	{
 		
 	}else if (instruction.opcode == sw)
 	{
+		dataMemory[address] = instruction.rt;
+	}else{
+		
+		printf("error Bill Leonard");
 		
 	}
 }
-voidWB()
+void WB(struct inst * instruction)
 {
+	//c cycles
+	*instruction = parser(instruction);
+	int opcode = instruction.opcode; 
+	
+	if(opcode == add || opcode == sub || opcode == addi || opcode == mul)
+	{
+		// get actual value to put in register
+		registers[instruction.rd] = instruction.rs + instruction.rt;
+		
+	}else
+	{
+		printf("error Bill Leonard");
+	}
 	
 }
 
