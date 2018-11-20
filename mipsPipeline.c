@@ -24,6 +24,7 @@ registers[0] = 0;
 enum op {add=0x20, addi=0x8, sub=0x22, mult=0x18, beq=0x4, lw=0x23,
 	sw=0x2b, haltsimulation=0xff};
 int errorCode = 0;	//variable holding the error code during program execution
+unsigned int d1,d2,d3;
 
 struct inst{
 	int opcode;
@@ -475,6 +476,48 @@ void fileParser(FILE *fp, char *fileName){
 	free(line);
 	return;
 }
+
+void ID(struct inst * instruction)
+{
+	*instruction = parser(instruction);
+	
+	if (instruction->opcode == add || sub || mult)
+	{
+		d1 = instruction->rs;
+		d2 = instruction->rt;
+	} else if(instruction->opcode == addi || sw || lw)
+	{
+		d1 = instruction->rs;
+		d2 = instruction->Imm;
+	} else if(instruction->opcode == beq)
+	{
+		// SOMETHING WITH BEQ HERE
+	}
+}
+
+void EX(struct inst * instruction)
+{
+	*instruction = parser(instruction);
+	
+	switch(instruction->opcode)
+				{
+				case add || addi || sw || lw:
+					d3 = d1+d2;
+					break;
+				case sub:
+					d3 = d1-d2;
+					break;
+				case mult:
+					d3 = d1*d2;
+					break;
+				case beq:
+					// DONT KNOW WHAT TO DO HERE
+					break;
+				default:
+					break;
+				}	
+}
+
 void MEM(struct inst * instruction)
 {
 	//c cycles
