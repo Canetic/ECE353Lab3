@@ -111,6 +111,7 @@ int parenthesisMatch(char *memField){
 		} else{
 			p2 = 1;
 		}
+		p = p1&p2;
 		//stop when the pointers cross or when both parentheses are found
 	}while((parenthesis[3] > parenthesis[2]) && !p);
 	//determine if the parentheses match, this should be 0
