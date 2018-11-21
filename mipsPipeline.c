@@ -33,7 +33,10 @@ struct inst{
 	unsigned int rd;
 	int Imm;
 };
-
+  struct inst IFIDLatch;
+  struct inst IDEXLatch;
+  struct inst EXMEMLatch;
+  struct inst MEMWBLatch;
 //Function to determine and validate the immediate field//
 int immediateParse(char *immediate){
 	char *ptr = immediate;
