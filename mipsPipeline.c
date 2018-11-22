@@ -506,8 +506,127 @@ void ID(struct inst * instruction)
 	// have to make sure that for mul sub and add that it doesn't interfere with future counters
 	
 	if(IDEX.readytoWrite && IFID.readyToRead){
-		if(IFID.instruction.rs = 
-		
+		if((IFIDLatch.instruction.rs == IDEXLatch.instruction.rd) || (IFIDlatch.instruction.rs == EXMEMLatch.instruction.rd) || (IFIDLatch.instruction.rs == MEMWBLatch.instruction.rd))
+		{
+			IDEXLatch.read = 1;
+			IDEXLatch.write = 0;
+			
+			
+			
+		}else if((IFIDLatch.instruction.rt == IDEXLatch.instruction.rd) || (IFIDlatch.instruction.rt == EXMEMLatch.instruction.rd) || (IFIDLatch.instruction.rt == MEMWBLatch.instruction.rd))
+		{
+			IDEXLatch.read = 1;
+			IDEXLatch.write = 0;
+		}
+		switch(IFIDLatch.instruction.opcode){
+			case add: 
+				IFIDLatch.instruction.rs = registers[IFIDLatch.instruction.rs];
+				IFIDLatch.instruction.rt = registers[IFIDLatch.instruction.rt];
+				IDEXLatch = IFIDLatch;
+				IDEXLatch.read = 1;
+				IDEXLatch.write = 0;
+				IFIDLatch.write = 1;
+				IFIDLatch.read = 0;
+                //ID_cycle_count++;
+			case addi: // i type
+				//printf("%s\n", "ADDI");
+				IfId.instruction.rd = IfId.instruction.rt;
+				IfId.instruction.rs = registers[IfId.instruction.rs];
+				IfId.instruction.rt = registers[IfId.instruction.rt];
+				IDEX = IfId;
+				IDEX.readyToRead = 1;
+				IDEX.readytoWrite = 0;
+				IFID.readytoWrite = 1;
+				IFID.readyToRead = 0;
+                ID_cycle_count++;
+				return 1;//return IfId;
+				
+			case sub: // r type
+				IfId.instruction.rs = registers[IfId.instruction.rs];
+				IfId.instruction.rt = registers[IfId.instruction.rt];
+				IDEX = IfId;
+				IDEX.readyToRead = 1;
+				IDEX.readytoWrite = 0;
+				IFID.readytoWrite = 1;
+				IFID.readyToRead = 0;
+                ID_cycle_count++;
+				return 1;//return IfId;
+				
+			case mult: //r type
+				IfId.instruction.rs = registers[IfId.instruction.rs];
+				IfId.instruction.rt = registers[IfId.instruction.rt];
+				IDEX = IfId;
+				IDEX.readyToRead = 1;
+				IDEX.readytoWrite = 0;
+				IFID.readytoWrite = 1;
+				IFID.readyToRead = 0;
+                ID_cycle_count++;
+				return 1;//return IfId;
+				
+			case beq: //i type
+				IfId.instruction.rs = registers[IfId.instruction.rs];
+				IfId.instruction.rt = registers[IfId.instruction.rt];
+	            IDEX = IfId;
+				IDEX.readyToRead = 1;
+				IDEX.readytoWrite = 0;
+				IFID.readytoWrite = 1;
+				IFID.readyToRead = 0;
+				BRANCH_PENDING = 1;
+                ID_cycle_count++;
+				return 1;//return IfId;
+				
+			case lw://i type
+				IfId.instruction.rd = IfId.instruction.rt;
+				IfId.instruction.rs = registers[IfId.instruction.rs];
+				IfId.instruction.rt = registers[IfId.instruction.rt];
+				if(IfId.instruction.Imm%4 != 0){
+					printf("Misaligned Memory\n");
+					exit(0);
+				}
+
+				IDEX = IfId;
+				IDEX.readyToRead = 1;
+				IDEX.readytoWrite = 0;
+				IFID.readytoWrite = 1;
+				IFID.readyToRead = 0;
+                ID_cycle_count++;
+				return 1;//return IfId;
+			
+			case sw://i type
+				IfId.instruction.rd = IfId.instruction.rt;
+				IfId.instruction.rs = registers[IfId.instruction.rs];
+				IfId.instruction.rt = registers[IfId.instruction.rt];
+				if(IfId.instruction.Imm%4 != 0){
+					printf("Misaligned Memory\n");
+					exit(0);
+				}
+
+	            IDEX = IfId;
+				IDEX.readyToRead = 1;
+				IDEX.readytoWrite = 0;
+				IFID.readytoWrite = 1;
+				IFID.readyToRead = 0;
+                ID_cycle_count++;
+				return 1;//return IfId;
+				
+			case haltSimulation:
+				IDEX = IfId;
+				IDEX.readyToRead = 1;
+				IDEX.readytoWrite = 0;
+				IFID.readytoWrite = 0;
+				IFID.readyToRead = 0;
+				return 0;//return IfId;
+				
+			case noop:
+				IDEX = IfId;
+				IDEX.readyToRead = 1;
+				IDEX.readytoWrite = 0;
+				IFID.readytoWrite = 1;
+				IFID.readyToRead = 0;
+				return 0;//return IfId;
+			
+		}
+	}
 		
 		
 		
