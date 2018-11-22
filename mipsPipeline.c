@@ -601,27 +601,95 @@ void ID(struct inst * instruction)
 	}
 }
 
+
 void EX(struct inst * instruction)
 {
 	*instruction = parser(instruction);
-	
-	switch(instruction->opcode)
-				{
-				case add || addi || sw || lw:
-					d3 = d1+d2;
-					break;
-				case sub:
-					d3 = d1-d2;
-					break;
-				case mult:
-					d3 = d1*d2;
-					break;
-				case beq:
-					// DONT KNOW WHAT TO DO HERE
-					break;
-				default:
-					break;
-				}	
+	if(IDEXLatch.read && EXMEMLatch.write)
+	{
+		switch(IDEXLatch.instruction.opcode)
+		{
+			case add:
+		        EXMEM.data = IDEX.instruction.rs+IDEX.instruction.rt;
+		        EXMEM.readyToRead = 1;
+		        EXMEM.readytoWrite = 0;
+		        IDEX.readytoWrite = 1;
+		        IDEX.readyToRead = 0;
+		        EXMEM.instruction = IDEX.instruction;
+                EX_cycle_count = EX_cycle_count + n;
+		        //add to useful process count
+		        return n;
+	    	case addi:
+		    	//printf("%s   %d     %d\n", "ADDI-EX", IDEX.instruction.rs, IDEX.instruction.Imm);
+		        EXMEM.data = IDEX.instruction.rs+IDEX.instruction.Imm;
+		        EXMEM.readyToRead = 1;
+		        EXMEM.readytoWrite = 0;
+		        IDEX.readytoWrite = 1;
+		        IDEX.readyToRead = 0;
+		        EXMEM.instruction = IDEX.instruction;
+                EX_cycle_count = EX_cycle_count + n;
+	        	return n;
+	    	case sub:
+		        EXMEM.data = IDEX.instruction.rs-IDEX.instruction.rt;
+		        EXMEM.readyToRead = 1;
+		        EXMEM.readytoWrite = 0;
+		        IDEX.readytoWrite = 1;
+		        IDEX.readyToRead = 0;
+		        EXMEM.instruction = IDEX.instruction;
+                EX_cycle_count = EX_cycle_count + n;
+		        return n;
+	    	case beq:
+		        BRANCH_PENDING=1; //maybe should be done in the ID stage
+		        if((IDEX.instruction.rs-IDEX.instruction.rt)==0){
+		            *p=*p+IDEX.instruction.Imm;/////////********************change program counter
+		        }
+		        BRANCH_PENDING = 0;
+		        EXMEM.readyToRead = 1;
+		        EXMEM.readytoWrite = 0;
+		        IDEX.readytoWrite = 1;
+		        IDEX.readyToRead = 0;
+		        EXMEM.instruction = IDEX.instruction;
+                EX_cycle_count = EX_cycle_count + n;
+		        return n;
+			case lw: 
+		        EXMEM.readyToRead = 1;
+		        EXMEM.readytoWrite = 0;
+		        IDEX.readytoWrite = 1;
+		        IDEX.readyToRead = 0;
+		        EXMEM.instruction = IDEX.instruction;
+                EX_cycle_count = EX_cycle_count + n;
+		        return n;
+			case sw:
+		        EXMEM.data = IDEX.instruction.rt;
+		        EXMEM.readyToRead = 1;
+		        EXMEM.readytoWrite = 0;
+		        IDEX.readytoWrite = 1;
+		        IDEX.readyToRead = 0;
+		        EXMEM.instruction = IDEX.instruction;
+                EX_cycle_count = EX_cycle_count + n;
+		        return n; 
+	     	case haltSimulation:
+		    	EXMEM.instruction = IDEX.instruction;
+		        EXMEM.readyToRead = 1;
+		        EXMEM.readytoWrite = 0;
+		        IDEX.readytoWrite = 0;
+		        IDEX.readyToRead = 0;    	
+		    	return 0;
+	    	case mult:{
+	            int result;
+	            result = IDEX.instruction.rs*IDEX.instruction.rt;
+	            result = result&0x0000ffff; //making sure the result if only the low reg
+	            EXMEM.data = result;
+		        EXMEM.readyToRead = 1;
+		        EXMEM.readytoWrite = 0;
+		        IDEX.readytoWrite = 1;
+		        IDEX.readyToRead = 0;
+	            EXMEM.instruction = IDEX.instruction;
+                EX_cycle_count = EX_cycle_count + m;
+	            return m;
+			}
+	    }
+	}
 }
 
 void MEM(struct inst * EXMEMLatch)
