@@ -610,85 +610,49 @@ void EX(struct inst * instruction)
 		switch(IDEXLatch.instruction.opcode)
 		{
 			case add:
-		        EXMEM.data = IDEX.instruction.rs+IDEX.instruction.rt;
-		        EXMEM.readyToRead = 1;
-		        EXMEM.readytoWrite = 0;
-		        IDEX.readytoWrite = 1;
-		        IDEX.readyToRead = 0;
-		        EXMEM.instruction = IDEX.instruction;
-                EX_cycle_count = EX_cycle_count + n;
-		        //add to useful process count
-		        return n;
-	    	case addi:
-		    	//printf("%s   %d     %d\n", "ADDI-EX", IDEX.instruction.rs, IDEX.instruction.Imm);
-		        EXMEM.data = IDEX.instruction.rs+IDEX.instruction.Imm;
-		        EXMEM.readyToRead = 1;
-		        EXMEM.readytoWrite = 0;
-		        IDEX.readytoWrite = 1;
-		        IDEX.readyToRead = 0;
-		        EXMEM.instruction = IDEX.instruction;
-                EX_cycle_count = EX_cycle_count + n;
-	        	return n;
-	    	case sub:
-		        EXMEM.data = IDEX.instruction.rs-IDEX.instruction.rt;
-		        EXMEM.readyToRead = 1;
-		        EXMEM.readytoWrite = 0;
-		        IDEX.readytoWrite = 1;
-		        IDEX.readyToRead = 0;
-		        EXMEM.instruction = IDEX.instruction;
-                EX_cycle_count = EX_cycle_count + n;
-		        return n;
-	    	case beq:
-		        BRANCH_PENDING=1; //maybe should be done in the ID stage
-		        if((IDEX.instruction.rs-IDEX.instruction.rt)==0){
-		            *p=*p+IDEX.instruction.Imm;/////////********************change program counter
-		        }
-		        BRANCH_PENDING = 0;
-		        EXMEM.readyToRead = 1;
-		        EXMEM.readytoWrite = 0;
-		        IDEX.readytoWrite = 1;
-		        IDEX.readyToRead = 0;
-		        EXMEM.instruction = IDEX.instruction;
-                EX_cycle_count = EX_cycle_count + n;
-		        return n;
-			case lw: 
-		        EXMEM.readyToRead = 1;
-		        EXMEM.readytoWrite = 0;
-		        IDEX.readytoWrite = 1;
-		        IDEX.readyToRead = 0;
-		        EXMEM.instruction = IDEX.instruction;
-                EX_cycle_count = EX_cycle_count + n;
-		        return n;
-			case sw:
-		        EXMEM.data = IDEX.instruction.rt;
-		        EXMEM.readyToRead = 1;
-		        EXMEM.readytoWrite = 0;
-		        IDEX.readytoWrite = 1;
-		        IDEX.readyToRead = 0;
-		        EXMEM.instruction = IDEX.instruction;
-                EX_cycle_count = EX_cycle_count + n;
-		        return n; 
-	     	case haltSimulation:
-		    	EXMEM.instruction = IDEX.instruction;
-		        EXMEM.readyToRead = 1;
-		        EXMEM.readytoWrite = 0;
-		        IDEX.readytoWrite = 0;
-		        IDEX.readyToRead = 0;    	
-		    	return 0;
-	    	case mult:{
-	            int result;
-	            result = IDEX.instruction.rs*IDEX.instruction.rt;
-	            result = result&0x0000ffff; //making sure the result if only the low reg
-	            EXMEM.data = result;
-		        EXMEM.readyToRead = 1;
-		        EXMEM.readytoWrite = 0;
-		        IDEX.readytoWrite = 1;
-		        IDEX.readyToRead = 0;
-	            EXMEM.instruction = IDEX.instruction;
-                EX_cycle_count = EX_cycle_count + m;
-	            return m;
-			}
-	    }
+				EXMEMLatch.instruction.result = IDEXLatch.instruction.rs + IDEXLatch.instruction.rt;
+				EXMEMLatch.read = 1;
+				EXMEMLatch.write = 0;
+				IDEXLatch.write = 1;
+				IDEXLatch.read = 0;
+				EXMEMLatch.instruction = IDEXLatch.instruction;
+				break;
+				
+			case sub:
+				EXMEMLatch.instruction.result = IDEXLatch.instruction.rs - IDEXLatch.instruction.rt;
+				EXMEMLatch.read = 1;
+				EXMEMLatch.write = 0;
+				IDEXLatch.write = 1;
+				IDEXLatch.read = 0;
+				EXMEMLatch.instruction = IDEXLatch.instruction;
+				break;
+
+			case mult:
+				EXMEMLatch.instruction.result = IDEXLatch.instruction.rs * IDEXLatch.instruction.rt;
+				EXMEMLatch.read = 1;
+				EXMEMLatch.write = 0;
+				IDEXLatch.write = 1;
+				IDEXLatch.read = 0;
+				EXMEMLatch.instruction = IDEXLatch.instruction;
+				break;
+				
+			case addi||lw||sw:
+				EXMEMLatch.instruction.result = IDEXLatch.instruction.rs + IDEXLatch.instruction.Imm;
+				EXMEMLatch.read = 1;
+				EXMEMLatch.write = 0;
+				IDEXLatch.write = 1;
+				IDEXLatch.read = 0;
+				EXMEMLatch.instruction = IDEXLatch.instruction;
+				break;
+			
+			case beq: // CHANGE THIS CODE LATER
+				EXMEMLatch.instruction.result = IDEXLatch.instruction.rs + IDEXLatch.instruction.Imm;
+				EXMEMLatch.read = 1;
+				EXMEMLatch.write = 0;
+				IDEXLatch.write = 1;
+				IDEXLatch.read = 0;
+				EXMEMLatch.instruction = IDEXLatch.instruction;
+				break;
 	}
 }
 
