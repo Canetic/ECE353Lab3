@@ -32,11 +32,21 @@ struct inst{
 	unsigned int rt;
 	unsigned int rd;
 	int Imm;
+	int result;
 };
-  struct inst IFIDLatch;
-  struct inst IDEXLatch;
-  struct inst EXMEMLatch;
-  struct inst MEMWBLatch;
+
+struct latch{
+	
+	struct inst instruction;
+	int read;
+	int write;
+	
+}
+  struct latch IFIDLatch;
+  struct latch IDEXLatch;
+  struct latch EXMEMLatch;
+  struct latch MEMWBLatch;
+  
 //Function to determine and validate the immediate field//
 int immediateParse(char *immediate){
 	char *ptr = immediate;
@@ -469,7 +479,7 @@ void fileParser(FILE *fp, char *fileName){
 				exit(0);
 				break;
 			default:
-				break;
+				break;Your location
 			}
 		}
 		free(fmtLine);
@@ -479,10 +489,33 @@ void fileParser(FILE *fp, char *fileName){
 	free(line);
 	return;
 }
+void IF()
+{
+	if(IFID.readytoWrite){ 
+
+	
+	}
+
+}
+
 
 void ID(struct inst * instruction)
 {
 	*instruction = parser(instruction);
+	
+	// have to make sure that for mul sub and add that it doesn't interfere with future counters
+	
+	if(IDEX.readytoWrite && IFID.readyToRead){
+		if(IFID.instruction.rs = 
+		
+		
+		
+		
+		
+		
+		
+	}
+	
 	
 	if (instruction->opcode == add || sub || mult)
 	{
@@ -521,12 +554,12 @@ void EX(struct inst * instruction)
 				}	
 }
 
-void MEM(struct inst * instruction)
+void MEM(struct inst * EXMEMLatch)
 {
 	//c cycles
 	int reg;
 	int address;
-	*instruction = parser(instruction);
+	struct instruction = parser(EXMEMLatch);
 	//sign immediate and register to find address 
 	address = instruction.rs+instruction.immediate;
 	
@@ -543,11 +576,12 @@ void MEM(struct inst * instruction)
 		printf("error Bill Leonard");
 		
 	}
+	MEMWBLatch = instruction;
 }
-void WB(struct inst * instruction)
+void WB(struct inst * MEMWBLatch)
 {
 	//c cycles
-	*instruction = parser(instruction);
+	struct instruction = parser(MEMWBLatch);
 	int opcode = instruction.opcode; 
 	
 	if(opcode == add || opcode == sub || opcode == addi || opcode == mul)
@@ -560,6 +594,12 @@ void WB(struct inst * instruction)
 		printf("error Bill Leonard");
 	}
 	
+	//reset latch after writing back
+	MEMWBLatch.opcode = 0;
+	MEMWBLatch.rs = 0;
+	MEMWBLatch.rt = 0;
+	MEMWBLatch.rd = 0;
+	MEMWBLatch.Imm = 0;
 }
 
 int main(int argc, char *argv[])
@@ -570,6 +610,32 @@ int main(int argc, char *argv[])
 
 	fileParser(input, argv[1]);
 
+		IFIDLatch.opcode = 0;
+	IFIDLatch.rs = 0;
+	IFIDLatch.rt = 0;
+	IFIDLatch.rd = 0;
+	IFIDLatch.Imm = 0;
+
+	IDEXLatch.opcode = 0;
+	IDEXLatch.rs = 0;
+	IDEXLatch.rd = 0;
+	IDEXLatch.rt = 0;
+	IDEXLatch.Imm = 0;
+	
+	EXMEMLatch.opcode = 0;
+	EXMEMLatch.rs = 0;
+	EXMEMLatch.rd = 0;
+	EXMEMLatch.rt = 0;
+	EXMEMLatch.Imm = 0;
+	
+	MEMWBLatch.opcode = 0;
+	MEMWBLatch.rs = 0;
+	MEMWBLatch.rt = 0;
+	MEMWBLatch.rd = 0;
+	MEMWBLatch.Imm = 0;
+	
+	
+	
 	fclose(input);
 	return 0;
 }
