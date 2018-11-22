@@ -519,7 +519,7 @@ void ID(struct inst * instruction)
 			IDEXLatch.write = 0;
 		}
 		switch(IFIDLatch.instruction.opcode){
-			case add: 
+			case add||sub||mult: 
 				IFIDLatch.instruction.rs = registers[IFIDLatch.instruction.rs];
 				IFIDLatch.instruction.rt = registers[IFIDLatch.instruction.rt];
 				IDEXLatch = IFIDLatch;
@@ -528,41 +528,18 @@ void ID(struct inst * instruction)
 				IFIDLatch.write = 1;
 				IFIDLatch.read = 0;
                 //ID_cycle_count++;
-			case addi: // i type
-				//printf("%s\n", "ADDI");
-				IfId.instruction.rd = IfId.instruction.rt;
-				IfId.instruction.rs = registers[IfId.instruction.rs];
-				IfId.instruction.rt = registers[IfId.instruction.rt];
-				IDEX = IfId;
-				IDEX.readyToRead = 1;
-				IDEX.readytoWrite = 0;
-				IFID.readytoWrite = 1;
-				IFID.readyToRead = 0;
-                ID_cycle_count++;
-				return 1;//return IfId;
-				
-			case sub: // r type
-				IfId.instruction.rs = registers[IfId.instruction.rs];
-				IfId.instruction.rt = registers[IfId.instruction.rt];
-				IDEX = IfId;
-				IDEX.readyToRead = 1;
-				IDEX.readytoWrite = 0;
-				IFID.readytoWrite = 1;
-				IFID.readyToRead = 0;
-                ID_cycle_count++;
-				return 1;//return IfId;
-				
-			case mult: //r type
-				IfId.instruction.rs = registers[IfId.instruction.rs];
-				IfId.instruction.rt = registers[IfId.instruction.rt];
-				IDEX = IfId;
-				IDEX.readyToRead = 1;
-				IDEX.readytoWrite = 0;
-				IFID.readytoWrite = 1;
-				IFID.readyToRead = 0;
-                ID_cycle_count++;
-				return 1;//return IfId;
-				
+				break;
+			
+			case addi||lw||sw:
+				IFIDLatch.instruction.rs = registers[IFIDLatch.instruction.rs];
+				IFIDLatch.instruction.Imm = registers[IFIDLatch.instruction.Imm];
+				IDEXLatch = IFIDLatch;
+				IDEXLatch.read = 1;
+				IDEXLatch.write = 0;
+				IFIDLatch.write = 1;
+				IFIDLatch.read = 0;
+				//EX_cycle_count++;
+				break;	
 			case beq: //i type
 				IfId.instruction.rs = registers[IfId.instruction.rs];
 				IfId.instruction.rt = registers[IfId.instruction.rt];
@@ -574,32 +551,6 @@ void ID(struct inst * instruction)
 				BRANCH_PENDING = 1;
                 ID_cycle_count++;
 				return 1;//return IfId;
-				
-			case lw://i type
-				IfId.instruction.rd = IfId.instruction.rt;
-				IfId.instruction.rs = registers[IfId.instruction.rs];
-				IfId.instruction.rt = registers[IfId.instruction.rt];
-				if(IfId.instruction.Imm%4 != 0){
-					printf("Misaligned Memory\n");
-					exit(0);
-				}
-
-				IDEX = IfId;
-				IDEX.readyToRead = 1;
-				IDEX.readytoWrite = 0;
-				IFID.readytoWrite = 1;
-				IFID.readyToRead = 0;
-                ID_cycle_count++;
-				return 1;//return IfId;
-			
-			case sw://i type
-				IfId.instruction.rd = IfId.instruction.rt;
-				IfId.instruction.rs = registers[IfId.instruction.rs];
-				IfId.instruction.rt = registers[IfId.instruction.rt];
-				if(IfId.instruction.Imm%4 != 0){
-					printf("Misaligned Memory\n");
-					exit(0);
-				}
 
 	            IDEX = IfId;
 				IDEX.readyToRead = 1;
