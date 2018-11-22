@@ -663,22 +663,28 @@ void MEM(struct inst * EXMEMLatch)
 	int address;
 	struct instruction = parser(EXMEMLatch);
 	//sign immediate and register to find address 
-	address = instruction.rs+instruction.immediate;
-	
-	if(instruction.opcode == lw)
-		
-		registers[instruction.rt] = dataMemory[address];
-	{
-		
-	}else if (instruction.opcode == sw)
-	{
-		dataMemory[address] = instruction.rt;
-	}else{
-		
-		printf("error Bill Leonard");
-		
+	address = EXMEMLatch.instruction.rs+EXMEMLatch.instruction.immediate;
+	if(EXMEMLatch.read && MEMWBLatch.write)
+		{
+		if(EXMEMLatch.instruction.opcode == lw)
+			
+			registers[EXMEMLatch.instruction.rt] = dataMemory[address];
+		{
+			
+		}else if (EXMEMLatch.instruction.opcode == sw)
+		{
+			dataMemory[address] = EXMEMLatch.instruction.rt;
+		}else{
+			
+			printf("error Bill Leonard");
+			
+		}
+		MEMWBLatch.instruction = ExeMemLatch.instruction;
+			MEMWBLatch.read = 1;
+			MEMWBLatch.write = 0;
+			EXMEMLatch.read = 0;
+			EXMEMLatch.write = 1;
 	}
-	MEMWBLatch = instruction;
 }
 void WB(struct inst * MEMWBLatch)
 {
