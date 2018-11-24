@@ -31,6 +31,7 @@ int registers[32];
 enum op {add=0x20, addi=0x8, sub=0x22, mult=0x18, beq=0x4, lw=0x23,
 	sw=0x2b, haltsimulation=0xff};
 int errorCode = 0;	//variable holding the error code during program execution
+int halt_simulation =0;
 
 // instruction 
 struct inst{
@@ -546,6 +547,15 @@ int main(int argc, char *argv[])
 	
 	
 	
+	if(!halt_simulation){
+		IF();
+		ID();
+		EX();
+		MEM();
+		WB();
+	}
+	
+	
 	fclose(input);
 	return 0;
 }
@@ -628,13 +638,13 @@ void ID()
 				IFID.readyToRead = 0;
                 //ID_cycle_count++;
 		
-			/*case haltSimulation:
+			case haltSimulation:
 				IDEX = IfId;
 				IDEX.readyToRead = 1;
 				IDEX.readytoWrite = 0;
 				IFID.readytoWrite = 0;
 				IFID.readyToRead = 0;
-				return 0;//return IfId;
+				return 0;
 				
 			case noop:
 				IDEX = IfId;
@@ -747,13 +757,19 @@ void WB()
 		// get actual value to put in register
 		registers[MEMWBLatch.instruction.rd] = MEMWBLatch.instruction.result;
 		
-	}else
+	}
+	else if(opcode == haltSimulation)
+	{
+		halt_simulation =1;
+	}
+	else
 	{
 		printf("error Bill Leonard");
 	}
 		MEMWBLatch.write = 1;
 		MEMWBLatch.read = 0;
 	}
+	
 }
 
 
