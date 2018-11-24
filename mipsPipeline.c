@@ -13,7 +13,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
-#include <limits.h>
 
 void MEM();
 void WB();
@@ -23,7 +22,7 @@ void ID();
 
 
 
-struct inst instMem[512];
+
 //storing registers and data memory
 int dataMemory[512];
 //program counter
@@ -49,7 +48,7 @@ struct inst{
 	int result;
 };
 
-
+struct inst instMem[512];
 //latch struct 
 struct latch{
 	
@@ -86,7 +85,7 @@ int immediateParse(char *immediate){
 	if(isValid){
 		Imm = (int)atoi(immediate);
 		//determine if the immediate is out of bounds
-		if((Imm >= SHRT_MIN) && (Imm < SHRT_MAX) && (Imm%4 == 0))
+		if(abs(Imm) < 0x10000){
 			return Imm;
 		}
 	}
@@ -149,7 +148,6 @@ int parenthesisMatch(char *memField){
 		} else{
 			p2 = 1;
 		}
-		p = p1&p2;
 		//stop when the pointers cross or when both parentheses are found
 	}while((parenthesis[3] > parenthesis[2]) && !p);
 	//determine if the parentheses match, this should be 0
@@ -628,15 +626,15 @@ void ID()
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
 		}
-		else if(((IDEXLatch.instruction.opcode == lw) && (IFIDLatch.instruction.rt == IDEXLatch.instruction.rt) || (IFIDLatch.instruction.rs == IDEXLatch.instruction.rt)))
-					||((EXMEMLatch.instruction.opcode == lw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs)== EXMEMLatch.instruction.rt)))
-						||((MEMWBLatch.instruction.opcode) == lw) && ((IFIDLatch.instruction.rt == MEMWBLatch.instruction.rt)|| (IFIDLatch.instruction.rs== MEMWBLatch.instruction.rt))))
+		else if(((IDEXLatch.instruction.opcode == lw) && ((IFIDLatch.instruction.rt == IDEXLatch.instruction.rt) || (IFIDLatch.instruction.rs == IDEXLatch.instruction.rt)))
+					||((EXMEMLatch.instruction.opcode == lw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs == EXMEMLatch.instruction.rt)))
+						||((MEMWBLatch.instruction.opcode == lw) && ((IFIDLatch.instruction.rt == MEMWBLatch.instruction.rt)|| (IFIDLatch.instruction.rs == MEMWBLatch.instruction.rt))))
 		{
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
 		}
 		else if (((IDEXLatch.instruction.opcode == sw) && ((IFIDLatch.instruction.rt == IDEXLatch.instruction.rt) || (IFIDLatch.instruction.rs == IDEXLatch.instruction.rt)))
-					||((EXMEMLatch.instruction.opcode == sw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs)== EXMEMLatch.instruction.rt))))
+					||((EXMEMLatch.instruction.opcode == sw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs == EXMEMLatch.instruction.rt))))
 		{
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
@@ -679,19 +677,19 @@ void ID()
 				ID_cycle++;
 				break;	
 			case beq:
-	            IDEX.instruction = IfId.instruction;
-				IDEX.read = 1;
-				IDEX.write = 0;
-				IFID.write = 0;
-				IFID.read = 1;
+	            IDEXLatch.instruction = IFIDLatch.instruction;
+				IDEXLatch.read = 1;
+				IDEXLatch.write = 0;
+				IFIDLatch.write = 0;
+				IFIDLatch.read = 1;
                 ID_cycle++;
 		
-			case haltSimulation:
-				IDEX = IfId;
-				IDEX.read = 1;
-				IDEX.write = 0;
-				IFID.write = 0;
-				IFID.read = 0;
+			case haltsimulation:
+				IDEXLatch.instruction = IFIDLatch.instruction;
+				IDEXLatch.read = 1;
+				IDEXLatch.write = 0;
+				IFIDLatch.write = 0;
+				IFIDLatch.read = 0;
 				return 0;
 				
 			/*case noop:
@@ -754,7 +752,7 @@ void EX()
 			
 			case beq:
 				if(registers[IDEXLatch.instruction.rs]==registers[IDEXLatch.instruction.rt]){
-					PC = PC+4+registers[IDEXLatch.instruction.Imm];
+					pc = pc+4+registers[IDEXLatch.instruction.Imm];
 				}
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
@@ -819,7 +817,7 @@ void WB()
 	{
 		registers[MEMWBLatch.instruction.rt] = MEMWBLatch.instruction.result;
 	}
-	else if(opcode == haltSimulation)
+	else if(opcode == haltsimulation)
 	{
 		halt_simulation =1;
 	}
