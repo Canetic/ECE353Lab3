@@ -13,6 +13,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <limits.h>
 
 void MEM();
 void WB();
@@ -85,7 +86,7 @@ int immediateParse(char *immediate){
 	if(isValid){
 		Imm = (int)atoi(immediate);
 		//determine if the immediate is out of bounds
-		if(abs(Imm) < 0x10000){
+		if((Imm >= SHRT_MIN) && (Imm < SHRT_MAX) && (Imm%4 == 0))
 			return Imm;
 		}
 	}
@@ -148,6 +149,7 @@ int parenthesisMatch(char *memField){
 		} else{
 			p2 = 1;
 		}
+		p = p1&p2;
 		//stop when the pointers cross or when both parentheses are found
 	}while((parenthesis[3] > parenthesis[2]) && !p);
 	//determine if the parentheses match, this should be 0
