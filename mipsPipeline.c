@@ -20,6 +20,9 @@ void EX();
 void IF();
 void ID();
 
+
+
+
 //storing registers and data memory
 int dataMemory[512];
 //program counter
@@ -45,8 +48,9 @@ struct inst{
 	int result;
 };
 
+
 struct inst instMem[512];
-//latche struct 
+//latch struct 
 struct latch{
 	
 	struct inst instruction;
@@ -462,6 +466,12 @@ void fileParser(FILE *fp, char *fileName){
 		//continue only if the formatted string isn't NULL
 		assert(fmtLine != NULL);
 
+		//load valid instructions into the instruction memory if it isn't full
+		if((strcmp(fmtLine, "")!=0) && (instrAddr < 512)){
+			instruction = parser(fmtLine);
+			instrAddr++;
+		}
+
 		//check for errors before continuing
 		if(errorCode != 0){
 			printf("%s:%d \"%s\"\nerror: ", fileName, lineNum, strtok(line,"\r\n"));
@@ -495,7 +505,6 @@ void fileParser(FILE *fp, char *fileName){
 			instruction = parser(fmtLine);
 			instMem[instrAddr++] = instruction;
 		}
-		
 		free(fmtLine);
 		lineNum++;
 	}
@@ -549,15 +558,25 @@ int main(int argc, char *argv[])
 	MEMWBLatch.write = 1;
 	
 	
-	
+	int cycle =0;
 	if(!halt_simulation){
 		IF();
 		ID();
 		EX();
 		MEM();
 		WB();
+		cycle++
 	}
 	
+	
+	
+	//utilization
+	double ifUtil, idUtil, exUtil, memUtil, wbUtil;
+	ifUtil = (IF_cycle)/cycle;
+	idUtil = (ID_cycle)/cycle;
+	exUtil = (EX_cycle)/cycle;
+	memUtil = (MEM_cycle)/cycle;
+	wbUtil = (WB_cycle)/cycle;	
 	
 	fclose(input);
 	return 0;
@@ -622,14 +641,13 @@ void ID()
 		
 		////// run ID ////////////////////
 		switch(IFIDLatch.instruction.opcode){
-			ID_cycle++;
 			case add:
 				IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.read = 1;
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 1;
 				IFIDLatch.read = 0;
-                //ID_cycle_count++;
+                ID_cycle++;
 				break;
 			case sub:
 				IDEXLatch.instruction = IFIDLatch.instruction;
@@ -637,7 +655,7 @@ void ID()
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 1;
 				IFIDLatch.read = 0;
-                //ID_cycle_count++;
+                ID_cycle++;
 				break;
 			case mult:
 				IDEXLatch.instruction = IFIDLatch.instruction;
@@ -645,7 +663,7 @@ void ID()
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 1;
 				IFIDLatch.read = 0;
-                //ID_cycle_count++;
+                ID_cycle++;
 				break;
 			case addi||lw||sw:
 				IFIDLatch.instruction.rs = registers[IFIDLatch.instruction.rs];
@@ -655,7 +673,7 @@ void ID()
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 1;
 				IFIDLatch.read = 0;
-				//EX_cycle_count++;
+				ID_cycle++;
 				break;	
 			case beq:
 	            IDEX = IfId;
@@ -663,7 +681,7 @@ void ID()
 				IDEX.write = 0;
 				IFID.write = 0;
 				IFID.read = 1;
-                //ID_cycle_count++;
+                ID_cycle++;
 		
 			case haltSimulation:
 				IDEX = IfId;
@@ -688,7 +706,6 @@ void ID()
 void EX()
 {
 	if(IDEXLatch.read && EXMEMLatch.write)
-		EX_cycle++;
 	{
 		switch(IDEXLatch.instruction.opcode)
 		{
@@ -699,6 +716,7 @@ void EX()
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EX_cycle++;
 				break;
 				
 			case sub:
@@ -708,6 +726,7 @@ void EX()
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EX_cycle++;
 				break;
 
 			case mult:
@@ -717,6 +736,7 @@ void EX()
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EX_cycle++;
 				break;
 				
 			case addi||lw||sw:
@@ -726,6 +746,7 @@ void EX()
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EX_cycle++;
 				break;
 			
 			case beq:
@@ -739,6 +760,7 @@ void EX()
 				IFIDLatch.write = 1;
 				IFIDLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EX_cycle++;
 				break;
 	
 		
@@ -760,12 +782,12 @@ void MEM()
 		if(EXMEMLatch.instruction.opcode == lw)
 		{	
 			EXMEMLatch.instruction.result = dataMemory[address];
-			MEM_cycle;
+			MEM_cycle++;
 		}
 		else if (EXMEMLatch.instruction.opcode == sw)
 		{
 			dataMemory[address] = EXMEMLatch.instruction.rt;
-			MEM_cycle;
+			MEM_cycle++;
 		}
 		else
 		{
@@ -783,7 +805,7 @@ void WB()
 	//c cycles
 	int opcode = MEMWBLatch.instruction.opcode; 
 	if(MEMWBLatch.read){
-		WB_cycle;
+		WB_cycle++;
 	if(opcode == add || opcode == sub || opcode == addi || opcode == mult)
 	{
 		// get actual value to put in register
