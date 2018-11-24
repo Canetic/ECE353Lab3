@@ -15,10 +15,15 @@
 #include <assert.h>
 
 void MEM();
-voidWB();
+void WB();
+void EX();
+void IF();
+void ID();
 
 //storing registers and data memory
 int dataMemory[512];
+//program counter
+int pc =0;
 int registers[32];
 //intializing register 0 as 0
 //registers[0] = 0;
@@ -72,8 +77,8 @@ int immediateParse(char *immediate){
 	}
 	if(isValid){
 		Imm = (int)atoi(immediate);
-		//determine if the immediate is out of bounds and a multiple of 4
-		if((Imm >= SHRT_MIN) && (Imm < SHRT_MAX) && (Imm%4 == 0)){
+		//determine if the immediate is out of bounds
+		if(abs(Imm) < 0x10000){
 			return Imm;
 		}
 	}
@@ -149,9 +154,9 @@ int parenthesisMatch(char *memField){
 char *progScanner(char *inputLine){
 	char **tokens;	//declare the parameter array
 	char *retLine;	//declare the formatted string variable
+	//declare the delimeters
 	retLine = (char *)malloc(100*sizeof(char));
 	tokens = (char **)malloc(10*sizeof(char *));
-	//decalre the delimeters
 	char delims[] = {',',' ','\r','\n'};
 	int i,j,k;
 	int memOp;
@@ -378,7 +383,7 @@ struct inst parser(char *instStr)
 		}
 	case 'h':
 		//case for haltsimulation command, test if there are any other strings following it
-		if((strcmp(opField+1, "altSimulation") == 0) && (strtok(NULL, " ") == NULL)){
+		if((strcmp(opField+1, "altsimulation") == 0) && (strtok(NULL, " ") == NULL)){
 			instruction.opcode = haltsimulation;
 			return instruction;
 		}
@@ -417,7 +422,10 @@ struct inst parser(char *instStr)
 		instruction.Imm = immediateParse(Imm);
 		break;
 	case mult:
-
+		//		regFields[1] = strtok(NULL, " ");
+		//		instruction.rs = regNumberConverter(regFields[0]);
+		//		instruction.rt = regNumberConverter(regFields[1]);
+		//		break;
 	case add:
 	case sub:
 		regFields[1] = strtok(NULL, " ");
@@ -440,7 +448,6 @@ void fileParser(FILE *fp, char *fileName){
 	line = (char *)malloc(100*sizeof(char));
 	struct inst instruction;
 	int lineNum, instrAddr;
-	struct inst InstMem[512];
 
 	lineNum = 1;
 	instrAddr = 0;
@@ -454,7 +461,7 @@ void fileParser(FILE *fp, char *fileName){
 		//load valid instructions into the instruction memory if it isn't full
 		if((strcmp(fmtLine, "")!=0) && (instrAddr < 512)){
 			instruction = parser(fmtLine);
-			InstMem[instrAddr++] = instruction;
+			instrAddr++;
 		}
 
 		//check for errors before continuing
@@ -466,7 +473,7 @@ void fileParser(FILE *fp, char *fileName){
 				exit(0);
 				break;
 			case 'i':
-				puts("Immediate must be and integer multiple of 4 between -32,768 and +32,767");
+				puts("Immediate must be and integer between -65,535 and 65,534");
 				exit(0);
 				break;
 			case 'o':
@@ -563,7 +570,7 @@ void ID()
 	
 	if(IDEXLatch.write && IFIDLatch.read){
 		if((IFIDLatch.instruction.rs == IDEXLatch.instruction.rd)
-			|| (IFIDlatch.instruction.rs == EXMEMLatch.instruction.rd)
+			|| (IFIDLatch.instruction.rs == EXMEMLatch.instruction.rd)
 				|| (IFIDLatch.instruction.rs == MEMWBLatch.instruction.rd))
 		{
 			IDEXLatch.read = 1;
@@ -572,7 +579,7 @@ void ID()
 			
 			
 		}else if((IFIDLatch.instruction.rt == IDEXLatch.instruction.rd) 
-					|| (IFIDlatch.instruction.rt == EXMEMLatch.instruction.rd) 
+					|| (IFIDLatch.instruction.rt == EXMEMLatch.instruction.rd) 
 						|| (IFIDLatch.instruction.rt == MEMWBLatch.instruction.rd))
 		{
 			IDEXLatch.read = 1;
@@ -613,18 +620,14 @@ void ID()
 				IFIDLatch.read = 0;
 				//EX_cycle_count++;
 				break;	
-			/*case beq: //i type
-				IfId.instruction.rs = registers[IfId.instruction.rs];
-				IfId.instruction.rt = registers[IfId.instruction.rt];
+			case beq: //i type
 	            IDEX = IfId;
 				IDEX.readyToRead = 1;
 				IDEX.readytoWrite = 0;
 				IFID.readytoWrite = 1;
 				IFID.readyToRead = 0;
-				BRANCH_PENDING = 1;
-                ID_cycle_count++;
-				return 1;//return IfId;
-*/		
+                //ID_cycle_count++;
+		
 			/*case haltSimulation:
 				IDEX = IfId;
 				IDEX.readyToRead = 1;
@@ -687,14 +690,16 @@ void EX()
 				EXMEMLatch.instruction = IDEXLatch.instruction;
 				break;
 			
-			/*case beq: // CHANGE THIS CODE LATER
-				EXMEMLatch.instruction.result = IDEXLatch.instruction.rs + IDEXLatch.instruction.Imm;
+			case beq:
+				if(registers[IDEXLatch.instruction.rs]==registers[IDEXLatch.instruction.rt]){
+					PC = PC+4+registers[IDEXLatch.instruction.Imm];
+				}
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
-				break;*/
+				break;
 	
 		
 		}
@@ -706,7 +711,7 @@ void MEM()
 {
 	//c cycles
 	
-	int address
+	int address;
 	
 	//sign immediate and register to find address 
 	address = EXMEMLatch.instruction.rs+EXMEMLatch.instruction.Imm;
