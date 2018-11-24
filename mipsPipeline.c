@@ -465,12 +465,6 @@ void fileParser(FILE *fp, char *fileName){
 		//continue only if the formatted string isn't NULL
 		assert(fmtLine != NULL);
 
-		//load valid instructions into the instruction memory if it isn't full
-		if((strcmp(fmtLine, "")!=0) && (instrAddr < 512)){
-			instruction = parser(fmtLine);
-			instrAddr++;
-		}
-
 		//check for errors before continuing
 		if(errorCode != 0){
 			printf("%s:%d \"%s\"\nerror: ", fileName, lineNum, strtok(line,"\r\n"));
