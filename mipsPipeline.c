@@ -45,6 +45,7 @@ struct inst{
 	int result;
 };
 
+struct inst instMem[512];
 //latche struct 
 struct latch{
 	
@@ -461,12 +462,6 @@ void fileParser(FILE *fp, char *fileName){
 		//continue only if the formatted string isn't NULL
 		assert(fmtLine != NULL);
 
-		//load valid instructions into the instruction memory if it isn't full
-		if((strcmp(fmtLine, "")!=0) && (instrAddr < 512)){
-			instruction = parser(fmtLine);
-			instrAddr++;
-		}
-
 		//check for errors before continuing
 		if(errorCode != 0){
 			printf("%s:%d \"%s\"\nerror: ", fileName, lineNum, strtok(line,"\r\n"));
@@ -495,6 +490,12 @@ void fileParser(FILE *fp, char *fileName){
 				break;
 			}
 		}
+		//load valid instructions into the instruction memory if it isn't full
+		if((strcmp(fmtLine, "")!=0) && (instrAddr < 512)){
+			instruction = parser(fmtLine);
+			instMem[instrAddr++] = instruction;
+		}
+		
 		free(fmtLine);
 		lineNum++;
 	}
