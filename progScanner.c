@@ -13,6 +13,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <limits.h>
 
 //define a set of opcodes
 enum op {add=0x20, addi=0x8, sub=0x22, mult=0x18, beq=0x4, lw=0x23,
@@ -47,8 +48,8 @@ int immediateParse(char *immediate){
 	}
 	if(isValid){
 		Imm = (int)atoi(immediate);
-		//determine if the immediate is out of bounds
-		if(abs(Imm) < 0x10000){
+		//determine if the immediate is out of bounds and a multiple of 4
+		if((Imm >= SHRT_MIN) && (Imm < SHRT_MAX) && (Imm%4 == 0)){
 			return Imm;
 		}
 	}
@@ -111,7 +112,6 @@ int parenthesisMatch(char *memField){
 		} else{
 			p2 = 1;
 		}
-		p = p1&p2;
 		//stop when the pointers cross or when both parentheses are found
 	}while((parenthesis[3] > parenthesis[2]) && !p);
 	//determine if the parentheses match, this should be 0
@@ -354,7 +354,7 @@ struct inst parser(char *instStr)
 		}
 	case 'h':
 		//case for haltsimulation command, test if there are any other strings following it
-		if((strcmp(opField+1, "altsimulation") == 0) && (strtok(NULL, " ") == NULL)){
+		if((strcmp(opField+1, "altSimulation") == 0) && (strtok(NULL, " ") == NULL)){
 			instruction.opcode = haltsimulation;
 			return instruction;
 		}
@@ -393,10 +393,7 @@ struct inst parser(char *instStr)
 		instruction.Imm = immediateParse(Imm);
 		break;
 	case mult:
-		//		regFields[1] = strtok(NULL, " ");
-		//		instruction.rs = regNumberConverter(regFields[0]);
-		//		instruction.rt = regNumberConverter(regFields[1]);
-		//		break;
+
 	case add:
 	case sub:
 		regFields[1] = strtok(NULL, " ");
@@ -419,6 +416,7 @@ void fileParser(FILE *fp, char *fileName){
 	line = (char *)malloc(100*sizeof(char));
 	struct inst instruction;
 	int lineNum, instrAddr;
+	struct inst InstMem[512];
 
 	lineNum = 1;
 	instrAddr = 0;
@@ -432,7 +430,7 @@ void fileParser(FILE *fp, char *fileName){
 		//load valid instructions into the instruction memory if it isn't full
 		if((strcmp(fmtLine, "")!=0) && (instrAddr < 512)){
 			instruction = parser(fmtLine);
-			instrAddr++;
+			InstMem[instrAddr++] = instruction;
 		}
 
 		//check for errors before continuing
@@ -444,7 +442,7 @@ void fileParser(FILE *fp, char *fileName){
 				exit(0);
 				break;
 			case 'i':
-				puts("Immediate must be and integer between -65,535 and 65,534");
+				puts("Immediate must be and integer multiple of 4 between -32,768 and +32,767");
 				exit(0);
 				break;
 			case 'o':
