@@ -22,7 +22,7 @@ void ID();
 
 
 
-
+struct inst instMem[512];
 //storing registers and data memory
 int dataMemory[512];
 //program counter
@@ -49,7 +49,6 @@ struct inst{
 };
 
 
-struct inst instMem[512];
 //latch struct 
 struct latch{
 	
@@ -515,6 +514,10 @@ void fileParser(FILE *fp, char *fileName){
 
 int main(int argc, char *argv[])
 {
+	
+	
+	int sim_mode =0;
+	
 	FILE *input;
 	input = fopen(argv[1], "r");
 	assert(input != NULL);
@@ -565,7 +568,7 @@ int main(int argc, char *argv[])
 		EX();
 		MEM();
 		WB();
-		cycle++
+		cycle++;
 	}
 	
 	
@@ -588,13 +591,13 @@ int main(int argc, char *argv[])
 void IF()
 {
 	if(IFIDLatch.write){ 
-		IF++;
-			IFID.read = 1;
-			IFID.write = 0;
-
-	
-		
+			IF_cycle++;
+			IFIDLatch.read = 1;
+			IFIDLatch.write = 0;
+			IFIDLatch.instruction = instMem[pc];
+			pc++;
 	}
+	
 	
 
 }
@@ -623,15 +626,15 @@ void ID()
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
 		}
-		else if((IDEXLatch.instruction.opcode == lw) && ((IFIDLatch.instruction.rt == IDEXLatch.instruction.rt) || (IFIDLatch.instruction.rs == IDEXLatch.instruction.rt))
-					||(EXMEMLatch.instruction.opcode == lw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs)== EXMEMLatch.instruction.rt))
-						||(MEMWBLatch.instruction.opcode) == lw) && ((IFIDLatch.instruction.rt == MEMWBLatch.instruction.rt)|| (IFIDLatch.instruction.rs== MEMWBLatch.instruction.rt)))
+		else if(((IDEXLatch.instruction.opcode == lw) && (IFIDLatch.instruction.rt == IDEXLatch.instruction.rt) || (IFIDLatch.instruction.rs == IDEXLatch.instruction.rt)))
+					||((EXMEMLatch.instruction.opcode == lw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs)== EXMEMLatch.instruction.rt)))
+						||((MEMWBLatch.instruction.opcode) == lw) && ((IFIDLatch.instruction.rt == MEMWBLatch.instruction.rt)|| (IFIDLatch.instruction.rs== MEMWBLatch.instruction.rt))))
 		{
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
 		}
-		else if ((IDEXLatch.instruction.opcode == sw) && ((IFIDLatch.instruction.rt == IDEXLatch.instruction.rt) || (IFIDLatch.instruction.rs == IDEXLatch.instruction.rt))
-					||(EXMEMLatch.instruction.opcode == sw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs)== EXMEMLatch.instruction.rt)))
+		else if (((IDEXLatch.instruction.opcode == sw) && ((IFIDLatch.instruction.rt == IDEXLatch.instruction.rt) || (IFIDLatch.instruction.rs == IDEXLatch.instruction.rt)))
+					||((EXMEMLatch.instruction.opcode == sw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs)== EXMEMLatch.instruction.rt))))
 		{
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
@@ -666,9 +669,7 @@ void ID()
                 ID_cycle++;
 				break;
 			case addi||lw||sw:
-				IFIDLatch.instruction.rs = registers[IFIDLatch.instruction.rs];
-				IFIDLatch.instruction.Imm = registers[IFIDLatch.instruction.Imm];
-				IDEXLatch = IFIDLatch;
+				IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.read = 1;
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 1;
@@ -676,7 +677,7 @@ void ID()
 				ID_cycle++;
 				break;	
 			case beq:
-	            IDEX = IfId;
+	            IDEX.instruction = IfId.instruction;
 				IDEX.read = 1;
 				IDEX.write = 0;
 				IFID.write = 0;
@@ -691,14 +692,14 @@ void ID()
 				IFID.read = 0;
 				return 0;
 				
-			case noop:
+			/*case noop:
 				IDEX = IfId;
 				IDEX.readyToRead = 1;
 				IDEX.readytoWrite = 0;
 				IFID.readytoWrite = 1;
 				IFID.readyToRead = 0;
 				return 0;
-			
+			*/
 		}
 	}
 }
