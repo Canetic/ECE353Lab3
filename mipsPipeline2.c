@@ -836,30 +836,26 @@ void EX()
 
 void MEM()
 {
-	int address;
 	
 	//sign immediate and register to find address 
 	printf("\nimmediate in MEM %d\n", EXMEMLatch.instruction.Imm);
 	assert((EXMEMLatch.instruction.Imm) % 4 == 0);
-	address = EXMEMLatch.instruction.rs+(EXMEMLatch.instruction.Imm)/4;
+	
 	if(EXMEMLatch.read && MEMWBLatch.write)
 		{
-		if(EXMEMLatch.instruction.opcode == lw)
-		{	
-			EXMEMLatch.instruction.result = dataMemory[address];
-			MEM_cycle++;
-		}
-		else if (EXMEMLatch.instruction.opcode == sw)
+		
+		switch(EXMEMLatch.instruction.opcode)
 		{
-			dataMemory[address] = EXMEMLatch.instruction.rt;
-			MEM_cycle++;
+			case lw:
+				EXMEMLatch.regDest = dataMemory[EXMEMLatch.aluResult];
+				MEM_cycle++;
+				break;
+			case sw:
+				dataMemory[EXMEMLatch.aluResult] = EXMEMLatch.rtData;
+				MEM_cycle++;
+				break;
 		}
-		else if (EXMEMLatch.instruction.opcode == beq)
-		{
-			IFIDLatch.write = 1;
-			IFIDLatch.read = 0;
-		}
-
+		
 		MEMWBLatch.instruction = EXMEMLatch.instruction;
 			MEMWBLatch.read = 1;
 			MEMWBLatch.write = 0;
