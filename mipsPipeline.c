@@ -14,6 +14,10 @@
 #include <ctype.h>
 #include <assert.h>
 
+#define SINGLE 1
+#define BATCH 0
+#define REG_NUM 32
+
 void MEM();
 void WB();
 void EX();
@@ -36,9 +40,9 @@ enum op {add=0x20, addi=0x8, sub=0x22, mult=0x18, beq=0x4, lw=0x23,
 int errorCode = 0;	//variable holding the error code during program execution
 int halt_simulation =0;
 // pipeline stage utilization initial
-int IF_cycle = 0, ID_cycle = 0, EX_cycle = 0; MEM_cycle = 0; WB_cycle =0; 
+int IF_cycle = 0, ID_cycle = 0, EX_cycle = 0; MEM_cycle = 0; WB_cycle =0;
 
-// instruction 
+// instruction
 struct inst{
 	int opcode;
 	unsigned int rs;
@@ -49,19 +53,20 @@ struct inst{
 };
 
 struct inst instMem[512];
-//latch struct 
+//latch struct
 struct latch{
-	
+
 	struct inst instruction;
 	int read;
 	int write;
-	
+
 	int rsData;
 	int rtData;
 	int ImmData;
 	int regDest;
 	int aluResult;
-	
+	int writeData;
+
 };
 
 //latches
@@ -69,7 +74,7 @@ struct latch{
   struct latch IDEXLatch;
   struct latch EXMEMLatch;
   struct latch MEMWBLatch;
-  
+
 //Function to determine and validate the immediate field//
 int immediateParse(char *immediate){
 	char *ptr = immediate;
@@ -514,12 +519,15 @@ void fileParser(FILE *fp, char *fileName){
 
 int main(int argc, char *argv[])
 {
-	
+	int sim_mode=0;//mode flag, 1 for single-cycle, 0 for batch
+	int c,m,n;
+	int i;//for loop counter
+	long mips_reg[REG_NUM];
+
 	for (int i=0;i<32;i++){
 			registers[i]=0;
 		}
-	int sim_mode =0;
-	
+
 	FILE *input;
 	input = fopen(argv[1], "r");
 	assert(input != NULL);
@@ -543,7 +551,7 @@ int main(int argc, char *argv[])
 	IFIDLatch.instruction.result = 0;
 	IDEXLatch.read= 0;
 	IDEXLatch.write = 1;
-	
+
 	EXMEMLatch.instruction.opcode = 0;
 	EXMEMLatch.instruction.rs = 0;
 	EXMEMLatch.instruction.rd = 0;
@@ -552,7 +560,7 @@ int main(int argc, char *argv[])
 	IFIDLatch.instruction.result = 0;
 	EXMEMLatch.read = 0;
 	EXMEMLatch.write = 1;
-	
+
 	MEMWBLatch.instruction.opcode = 0;
 	MEMWBLatch.instruction.rs = 0;
 	MEMWBLatch.instruction.rt = 0;
@@ -561,41 +569,101 @@ int main(int argc, char *argv[])
 	IFIDLatch.instruction.result = 0;
 	MEMWBLatch.read = 0;
 	MEMWBLatch.write = 1;
-	
-	
+
+
 	int cycle =0;
+
+	for(i=1;i<argc;i++){
+		printf("%s ",argv[i]);
+	}
+	printf("\n");
+	if(argc==7){
+		if(strcmp("-s",argv[1])==0){
+			sim_mode=SINGLE;
+		}
+		else if(strcmp("-b",argv[1])==0){
+			sim_mode=BATCH;
+		}
+		else{
+			printf("Wrong sim mode chosen\n");
+			exit(0);
+		}
+
+		m=atoi(argv[2]);
+		n=atoi(argv[3]);
+		c=atoi(argv[4]);
+		input=fopen(argv[5],"r");
+
+	}
+
+	else{
+		printf("Usage: ./sim-mips -s m n c input_name output_name (single-sysle mode)\n or \n ./sim-mips -b m n c input_name  output_name(batch mode)\n");
+		printf("m,n,c stand for number of cycles needed by multiplication, other operation, and memory access, respectively\n");
+		exit(0);
+	}
+	if(input==NULL){
+		printf("Unable to open input or output file\n");
+		exit(0);
+	}
+	//initialize registers and program counter
+	if(sim_mode==1){
+		for (i=0;i<REG_NUM;i++){
+			mips_reg[i]=0;
+		}
+	}
+
 	//!halt_simulation
-	while(cycle<10){
+	while(!halt_simulation){
 		WB();
-		if(MEMWBLatch.instruction.opcode=haltsimulation)
-			printf("\nimmediate memwb %d\n", MEMWBLatch.instruction.Imm);
 		MEM();
-		if(EXMEMLatch.instruction.opcode=haltsimulation)
-			printf("\nimmediate exmem %d\n", EXMEMLatch.instruction.Imm);
 		EX();
-		if(IDEXLatch.instruction.opcode=haltsimulation)
-			printf("\nimmediate idex %d\n", IDEXLatch.instruction.Imm);
 		ID();
-		if(IFIDLatch.instruction.opcode=haltsimulation)
-			printf("\nimmediate ifid %d\n", IFIDLatch.instruction.Imm);
 		IF();
 		cycle++;
+
+		if(sim_mode==1){
+		printf("cycle: %d register value: ",cycle);
+		for (i=1;i<REG_NUM;i++){
+			printf("%d  ",mips_reg[i]);
+		}
+		printf("program counter: %d\n",pc);
+		printf("press ENTER to continue\n");
+		while(getchar() != '\n');
+		}
 	}
-	
+
+	//get rid of haltsimulation cycle
+	cycle--;
+
 	printf("\n haltsimulation %d \n", halt_simulation);
-	
+
 	//utilization
 	double ifUtil, idUtil, exUtil, memUtil, wbUtil;
 	ifUtil = (IF_cycle)/cycle;
 	idUtil = (ID_cycle)/cycle;
 	exUtil = (EX_cycle)/cycle;
 	memUtil = (MEM_cycle)/cycle;
-	wbUtil = (WB_cycle)/cycle;	
-	
+	wbUtil = (WB_cycle)/cycle;
+
+	if(sim_mode==0){
+		printf("program name: %s\n",argv[5]);
+		printf("stage utilization: %f  %f  %f  %f  %f \n",
+                             ifUtil, idUtil, exUtil, memUtil, wbUtil);
+                     // add the (double) stage_counter/sim_cycle for each
+                     // stage following sequence IF ID EX MEM WB
+
+		printf("register values ");
+		for (i=1;i<REG_NUM;i++){
+			printf("%d  ",mips_reg[i]);
+		}
+		printf("%d\n",pc);
+
+	}
+
 	//debugging
 	printf("\n cycles: %d \n IF_cycle: %d\n ID_cycle: %d\n EX_cycle: %d\n MEM_cycle: %d\n WB_cycle: %d\n"
 	, cycle, IF_cycle, ID_cycle, EX_cycle, MEM_cycle, WB_cycle);
-	
+
 	//printf("\n cycles: %d \n exUtil: %d\n", cycle, exUtil);
 	fclose(input);
 	return 0;
@@ -606,21 +674,26 @@ int main(int argc, char *argv[])
 ////////////////////////////////
 void IF()
 {
-	
-	if(IFIDLatch.write){ 
-			IF_cycle++;
-			IFIDLatch.read = 1;
-			IFIDLatch.write = 0;
-			IFIDLatch.instruction = instMem[pc];
-			pc++;
-			if((IFIDLatch.instruction.opcode != addi)
-				||(IFIDLatch.instruction.opcode != sw)
-					||(IFIDLatch.instruction.opcode != lw)
-						||(IFIDLatch.instruction.opcode != beq)){
-				IFIDLatch.instruction.Imm =0;
+
+	if(IFIDLatch.write){
+
+				IFIDLatch.read = 1;
+				IFIDLatch.write = 0;
+				IFIDLatch.instruction = instMem[pc];
+				pc++;
+				if((IFIDLatch.instruction.opcode != addi)
+					||(IFIDLatch.instruction.opcode != sw)
+						||(IFIDLatch.instruction.opcode != lw)
+							||(IFIDLatch.instruction.opcode != beq)){
+					IFIDLatch.instruction.Imm =0;
+				}
 			}
-	}
-	
+			if(IFIDLatch.instruction.opcode != haltsimulation){
+				IF_cycle++;
+			}else if (IFIDLatch.instruction.opcode == haltsimulation){
+			}
+
+
 
 }
 
@@ -640,10 +713,10 @@ void ID()
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
 			printf("if1");
-			
-			
-		}else if((IFIDLatch.instruction.rt == IDEXLatch.instruction.rd) 
-					|| (IFIDLatch.instruction.rt == EXMEMLatch.instruction.rd) 
+
+
+		}else if((IFIDLatch.instruction.rt == IDEXLatch.instruction.rd)
+					|| (IFIDLatch.instruction.rt == EXMEMLatch.instruction.rd)
 						|| (IFIDLatch.instruction.rt == MEMWBLatch.instruction.rd))
 		{
 			IDEXLatch.read = 1;
@@ -663,21 +736,26 @@ void ID()
 			IDEXLatch.write = 0;
 		}
 		////////////structual hazards down to here//////////////
-		
+
 		//printf("\n test 2\n");
 		////// run ID ////////////////////
 		switch(IFIDLatch.instruction.opcode){
-			case add||sub||mult:
+			case add:
+			case sub:
+			case mult:
 				IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.rsData = registers[IFIDLatch.instruction.rs];
 				IDEXLatch.rtData = registers[IFIDLatch.instruction.rt];
+				IDEXLatch.regDest = IFIDLatch.instruction.rd;
 				IDEXLatch.read = 1;
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 1;
 				IFIDLatch.read = 0;
                			ID_cycle++;
 				break;
-			case addi||lw:
+				
+			case addi:
+			case lw:
 			printf("\n test 3\n");
 				IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.rsData = registers[IFIDLatch.instruction.rs];
@@ -689,7 +767,9 @@ void ID()
 				IFIDLatch.read = 0;
 				ID_cycle++;
 				break;
-			case sw||beq:
+				
+			case sw:
+			case beq:
 				IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.rsData = registers[IFIDLatch.instruction.rs];
 				IDEXLatch.ImmData = registers[IFIDLatch.instruction.Imm];
@@ -700,6 +780,7 @@ void ID()
 				IFIDLatch.read = 0;
 				ID_cycle++;
 				break;
+				
 			case haltsimulation:
 				IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.read = 1;
@@ -708,7 +789,7 @@ void ID()
 				IFIDLatch.read = 0;
 				printf("\n asdjasidbhuasidbsub \n");
 				break;
-				
+
 			/*case noop:
 				IDEX = IfId;
 				IDEX.readyToRead = 1;
@@ -717,7 +798,7 @@ void ID()
 				IFID.readyToRead = 0;
 				return 0;
 			*/
-			
+
 		}
 	}
 	if(IDEXLatch.instruction.opcode == halt_simulation)
@@ -733,69 +814,67 @@ void EX()
 		switch(IDEXLatch.instruction.opcode)
 		{
 			case add:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] + registers[IDEXLatch.instruction.rt];
+				EXMEMLatch.aluResult = IDEXLatch.rsData + IDEXLatch.rtData;
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EXMEMLatch.regDest = IDEXLatch.regDest;
 				EX_cycle++;
 				break;
-				
+
 			case sub:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] - registers[IDEXLatch.instruction.rt];
+				EXMEMLatch.aluResult = IDEXLatch.rsData - IDEXLatch.rtData;
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EXMEMLatch.regDest = IDEXLatch.regDest;
 				EX_cycle++;
 				break;
 
 			case mult:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] * registers[IDEXLatch.instruction.rt];
+				EXMEMLatch.aluResult = IDEXLatch.rsData * IDEXLatch.rtData;
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EXMEMLatch.regDest = IDEXLatch.regDest;
 				EX_cycle++;
 				break;
-				
+
 			case addi:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] + registers[IDEXLatch.instruction.Imm];
-				EXMEMLatch.read = 1;
-				EXMEMLatch.write = 0;
-				IDEXLatch.write = 1;
-				IDEXLatch.read = 0;
-				EXMEMLatch.instruction = IDEXLatch.instruction;
-				EX_cycle++;
-				break;
-				
-			case sw:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] + registers[IDEXLatch.instruction.Imm];
-				EXMEMLatch.read = 1;
-				EXMEMLatch.write = 0;
-				IDEXLatch.write = 1;
-				IDEXLatch.read = 0;
-				EXMEMLatch.instruction = IDEXLatch.instruction;
-				EX_cycle++;
-				break;
-				
 			case lw:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] + registers[IDEXLatch.instruction.Imm];
+				EXMEMLatch.aluResult = IDEXLatch.rsData + IDEXLatch.ImmData;
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EXMEMLatch.regDest = IDEXLatch.regDest;
 				EX_cycle++;
 				break;
-				
+
+			case sw:
+				EXMEMLatch.aluResult = IDEXLatch.rsData + IDEXLatch.ImmData;
+				EXMEMLatch.read = 1;
+				EXMEMLatch.write = 0;
+				IDEXLatch.write = 1;
+				IDEXLatch.read = 0;
+				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EXMEMLatch.rtData = IDEXLatch.rtData;
+				EX_cycle++;
+				break;
+
 			case beq:
-				if(registers[IDEXLatch.instruction.rs] == registers[IDEXLatch.instruction.rt]){
-					pc = pc+1+IDEXLatch.instruction.Imm;
-					assert(pc<0 || pc>512);
+				if(IDEXLatch.rsData == IDEXLatch.rtData){
+					pc = pc+1+IDEXLatch.ImmData;
+					assert(pc>0 || pc<512);
+					IFIDLatch.write = 1;
+					IFIDLatch.read = 0;
 				}
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
@@ -804,15 +883,16 @@ void EX()
 				EXMEMLatch.instruction = IDEXLatch.instruction;
 				EX_cycle++;
 				break;
+				
 			case haltsimulation:
 		    	EXMEMLatch.instruction = IDEXLatch.instruction;
 		        EXMEMLatch.read = 1;
 		        EXMEMLatch.write = 0;
 		        IDEXLatch.write = 0;
-		        IDEXLatch.read = 0;    	
+		        IDEXLatch.read = 0;
 		    	return 0;
-	
-		
+
+
 		}
 	}
 		if(EXMEMLatch.instruction.opcode == halt_simulation)
@@ -822,28 +902,34 @@ void EX()
 
 void MEM()
 {
-	int address;
-	
-	//sign immediate and register to find address 
+
+	//sign immediate and register to find address
 	printf("\nimmediate in MEM %d\n", EXMEMLatch.instruction.Imm);
 	assert((EXMEMLatch.instruction.Imm) % 4 == 0);
-	address = EXMEMLatch.instruction.rs+(EXMEMLatch.instruction.Imm)/4;
+
 	if(EXMEMLatch.read && MEMWBLatch.write)
 		{
-		if(EXMEMLatch.instruction.opcode == lw)
-		{	
-			EXMEMLatch.instruction.result = dataMemory[address];
-			MEM_cycle++;
-		}
-		else if (EXMEMLatch.instruction.opcode == sw)
+
+		switch(EXMEMLatch.instruction.opcode)
 		{
-			dataMemory[address] = EXMEMLatch.instruction.rt;
-			MEM_cycle++;
-		}
-		else if (EXMEMLatch.instruction.opcode == beq)
-		{
-			IFIDLatch.write = 1;
-			IFIDLatch.read = 0;
+			case lw:
+				MEMWBLatch.writeData = dataMemory[EXMEMLatch.aluResult];
+				MEMWBLatch.regDest = EXMEMLatch.regDest;
+				MEM_cycle++;
+				break;
+				
+			case sw:
+				dataMemory[EXMEMLatch.aluResult] = EXMEMLatch.rtData;
+				MEM_cycle++;
+				break;
+				
+			case add:
+			case sub:
+			case mult:
+			case addi:
+				MEMWBLatch.regDest = EXMEMLatch.regDest;
+				MEMWBLatch.aluResult = EXMEMLatch.aluResult;
+				break;
 		}
 
 		MEMWBLatch.instruction = EXMEMLatch.instruction;
@@ -857,29 +943,30 @@ void MEM()
 }
 void WB()
 {
-	//c cycles
-	int opcode = MEMWBLatch.instruction.opcode; 
 	if(MEMWBLatch.read){
 		WB_cycle++;
-	if(opcode == add || opcode == sub || opcode == addi || opcode == mult)
-	{
-		// get actual value to put in register
-		registers[MEMWBLatch.instruction.rd] = MEMWBLatch.instruction.result;
-		
-	}
-	else if(opcode == lw)
-	{
-		registers[MEMWBLatch.instruction.rt] = MEMWBLatch.instruction.result;
-	}
-	else if(opcode == haltsimulation)
-	{
-		halt_simulation =1;
-	}
-	
+
+		switch(MEMWBLatch.instruction.opcode)
+		{
+			case add:
+			case sub:
+			case mult:
+			case addi:
+				registers[MEMWBLatch.regDest] = MEMWBLatch.aluResult;
+				break;
+
+			case lw:
+				registers[MEMWBLatch.regDest] = MEMWBLatch.writeData;
+				break;
+
+			case haltsimulation:
+				halt_simulation = 1;
+				break;
+		}
+
 		MEMWBLatch.write = 1;
 		MEMWBLatch.read = 0;
+
 	}
-	
+
 }
-
-
