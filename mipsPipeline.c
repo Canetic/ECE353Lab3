@@ -608,7 +608,7 @@ int main(int argc, char *argv[])
 	//initialize registers and program counter
 	if(sim_mode==1){
 		for (i=0;i<REG_NUM;i++){
-			mips_reg[i]=0;
+			registers[i]=0;
 		}
 	}
 
@@ -624,7 +624,7 @@ int main(int argc, char *argv[])
 		if(sim_mode==1){
 		printf("cycle: %d register value: ",cycle);
 		for (i=1;i<REG_NUM;i++){
-			printf("%d  ",mips_reg[i]);
+			printf("%d  ",registers[i]);
 		}
 		printf("program counter: %d\n",pc);
 		printf("press ENTER to continue\n");
@@ -654,7 +654,7 @@ int main(int argc, char *argv[])
 
 		printf("register values ");
 		for (i=1;i<REG_NUM;i++){
-			printf("%d  ",mips_reg[i]);
+			printf("%d  ",registers[i]);
 		}
 		printf("%d\n",pc);
 
