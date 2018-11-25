@@ -529,7 +529,7 @@ int main(int argc, char *argv[])
 		}
 
 	FILE *input;
-	input = fopen(argv[1], "r");
+	input = fopen(argv[5], "r");
 	assert(input != NULL);
 
 	fileParser(input, argv[1]);
@@ -753,7 +753,7 @@ void ID()
 				IFIDLatch.read = 0;
                			ID_cycle++;
 				break;
-				
+
 			case addi:
 			case lw:
 			printf("\n test 3\n");
@@ -767,7 +767,7 @@ void ID()
 				IFIDLatch.read = 0;
 				ID_cycle++;
 				break;
-				
+
 			case sw:
 			case beq:
 				IDEXLatch.instruction = IFIDLatch.instruction;
@@ -780,7 +780,7 @@ void ID()
 				IFIDLatch.read = 0;
 				ID_cycle++;
 				break;
-				
+
 			case haltsimulation:
 				IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.read = 1;
@@ -883,7 +883,7 @@ void EX()
 				EXMEMLatch.instruction = IDEXLatch.instruction;
 				EX_cycle++;
 				break;
-				
+
 			case haltsimulation:
 		    	EXMEMLatch.instruction = IDEXLatch.instruction;
 		        EXMEMLatch.read = 1;
@@ -917,12 +917,12 @@ void MEM()
 				MEMWBLatch.regDest = EXMEMLatch.regDest;
 				MEM_cycle++;
 				break;
-				
+
 			case sw:
 				dataMemory[EXMEMLatch.aluResult] = EXMEMLatch.rtData;
 				MEM_cycle++;
 				break;
-				
+
 			case add:
 			case sub:
 			case mult:
