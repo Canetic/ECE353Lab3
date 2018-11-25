@@ -14,6 +14,10 @@
 #include <ctype.h>
 #include <assert.h>
 
+#define SINGLE 1
+#define BATCH 0
+#define REG_NUM 32
+
 void MEM();
 void WB();
 void EX();
