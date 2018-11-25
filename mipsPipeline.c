@@ -56,6 +56,12 @@ struct latch{
 	int read;
 	int write;
 	
+	int rsData;
+	int rtData;
+	int ImmData;
+	int regDest;
+	int aluResult;
+	
 };
 
 //latches
