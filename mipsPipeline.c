@@ -51,16 +51,11 @@ struct inst{
 struct inst instMem[512];
 //latch struct 
 struct latch{
-
+	
 	struct inst instruction;
 	int read;
 	int write;
-
-	int rsData;
-	int rtData;
-	int ImmData;
-	int regDest;
-	int aluResult;
+	
 };
 
 //latches
@@ -531,7 +526,7 @@ int main(int argc, char *argv[])
 	IFIDLatch.instruction.rd = 0;
 	IFIDLatch.instruction.Imm = 0;
 	IFIDLatch.instruction.result = 0;
-	IFIDLatch.read = 1;
+	IFIDLatch.read = 0;
 	IFIDLatch.write = 1;
 
 	IDEXLatch.instruction.opcode = 0;
@@ -540,7 +535,7 @@ int main(int argc, char *argv[])
 	IDEXLatch.instruction.rt = 0;
 	IDEXLatch.instruction.Imm = 0;
 	IFIDLatch.instruction.result = 0;
-	IDEXLatch.read= 1;
+	IDEXLatch.read= 0;
 	IDEXLatch.write = 1;
 	
 	EXMEMLatch.instruction.opcode = 0;
@@ -549,7 +544,7 @@ int main(int argc, char *argv[])
 	EXMEMLatch.instruction.rt = 0;
 	EXMEMLatch.instruction.Imm = 0;
 	IFIDLatch.instruction.result = 0;
-	EXMEMLatch.read = 1;
+	EXMEMLatch.read = 0;
 	EXMEMLatch.write = 1;
 	
 	MEMWBLatch.instruction.opcode = 0;
@@ -558,21 +553,30 @@ int main(int argc, char *argv[])
 	MEMWBLatch.instruction.rd = 0;
 	MEMWBLatch.instruction.Imm = 0;
 	IFIDLatch.instruction.result = 0;
-	MEMWBLatch.read = 1;
+	MEMWBLatch.read = 0;
 	MEMWBLatch.write = 1;
 	
 	
 	int cycle =0;
-	if(!halt_simulation){
+	//!halt_simulation
+	while(cycle<10){
 		WB();
+		if(MEMWBLatch.instruction.opcode=haltsimulation)
+			printf("\nimmediate memwb %d\n", MEMWBLatch.instruction.Imm);
 		MEM();
+		if(EXMEMLatch.instruction.opcode=haltsimulation)
+			printf("\nimmediate exmem %d\n", EXMEMLatch.instruction.Imm);
 		EX();
+		if(IDEXLatch.instruction.opcode=haltsimulation)
+			printf("\nimmediate idex %d\n", IDEXLatch.instruction.Imm);
 		ID();
+		if(IFIDLatch.instruction.opcode=haltsimulation)
+			printf("\nimmediate ifid %d\n", IFIDLatch.instruction.Imm);
 		IF();
 		cycle++;
 	}
 	
-	
+	printf("\n haltsimulation %d \n", halt_simulation);
 	
 	//utilization
 	double ifUtil, idUtil, exUtil, memUtil, wbUtil;
@@ -603,8 +607,13 @@ void IF()
 			IFIDLatch.write = 0;
 			IFIDLatch.instruction = instMem[pc];
 			pc++;
+			if((IFIDLatch.instruction.opcode != addi)
+				||(IFIDLatch.instruction.opcode != sw)
+					||(IFIDLatch.instruction.opcode != lw)
+						||(IFIDLatch.instruction.opcode != beq)){
+				IFIDLatch.instruction.Imm =0;
+			}
 	}
-	
 	
 
 }
@@ -612,15 +621,16 @@ void IF()
 
 void ID()
 {
-	printf("\n test 1\n");
+	//printf("\n test 1\n");
 	// have to make sure that for mul sub and add that it doesn't interfere with future counters
-	printf("\n IDEXLatch.write %d && IFIDLatch.read %d\n", IDEXLatch.write,IFIDLatch.read);
+	//printf("\n IDEXLatch.write %d && IFIDLatch.read %d\n", IDEXLatch.write,IFIDLatch.read);
 	/////////////////// structural hazards /////////////////////////////
 	if(IDEXLatch.write && IFIDLatch.read){
 		if((IFIDLatch.instruction.rs == IDEXLatch.instruction.rd)
 			|| (IFIDLatch.instruction.rs == EXMEMLatch.instruction.rd)
 				|| (IFIDLatch.instruction.rs == MEMWBLatch.instruction.rd))
 		{
+			//printf(
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
 			printf("if1");
@@ -632,7 +642,6 @@ void ID()
 		{
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
-			printf("if2");
 		}
 		else if(((IDEXLatch.instruction.opcode == lw) && ((IFIDLatch.instruction.rt == IDEXLatch.instruction.rt) || (IFIDLatch.instruction.rs == IDEXLatch.instruction.rt)))
 					||((EXMEMLatch.instruction.opcode == lw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs == EXMEMLatch.instruction.rt)))
@@ -640,18 +649,16 @@ void ID()
 		{
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
-			printf("if3");
 		}
 		else if (((IDEXLatch.instruction.opcode == sw) && ((IFIDLatch.instruction.rt == IDEXLatch.instruction.rt) || (IFIDLatch.instruction.rs == IDEXLatch.instruction.rt)))
 					||((EXMEMLatch.instruction.opcode == sw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs == EXMEMLatch.instruction.rt))))
 		{
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
-			printf("if4");
 		}
 		////////////structual hazards down to here//////////////
 		
-		printf("\n test 2\n");
+		//printf("\n test 2\n");
 		////// run ID ////////////////////
 		switch(IFIDLatch.instruction.opcode){
 			case add:
@@ -678,8 +685,8 @@ void ID()
 				IFIDLatch.read = 0;
                 ID_cycle++;
 				break;
-			case addi||lw||sw:
-			printf("\n test 3\n");
+			case sw:
+			//printf("\n test 3\n");
 				IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.read = 1;
 				IDEXLatch.write = 0;
@@ -687,13 +694,31 @@ void ID()
 				IFIDLatch.read = 0;
 				ID_cycle++;
 				break;	
+			case addi:
+			//printf("\n test 3\n");
+				IDEXLatch.instruction = IFIDLatch.instruction;
+				IDEXLatch.read = 1;
+				IDEXLatch.write = 0;
+				IFIDLatch.write = 1;
+				IFIDLatch.read = 0;
+				ID_cycle++;
+				break;
+			case lw:
+			//printf("\n test 3\n");
+				IDEXLatch.instruction = IFIDLatch.instruction;
+				IDEXLatch.read = 1;
+				IDEXLatch.write = 0;
+				IFIDLatch.write = 1;
+				IFIDLatch.read = 0;
+				ID_cycle++;
+				break;
 			case beq:
 	            IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.read = 1;
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 0;
 				IFIDLatch.read = 1;
-                ID_cycle++;
+                break;
 		
 			case haltsimulation:
 				IDEXLatch.instruction = IFIDLatch.instruction;
@@ -701,7 +726,8 @@ void ID()
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 0;
 				IFIDLatch.read = 0;
-				return 0;
+				printf("\n asdjasidbhuasidbsub \n");
+				break;
 				
 			/*case noop:
 				IDEX = IfId;
@@ -711,8 +737,13 @@ void ID()
 				IFID.readyToRead = 0;
 				return 0;
 			*/
+			
 		}
 	}
+	if(IDEXLatch.instruction.opcode == halt_simulation)
+		printf("halt moving");
+
+	//printf("test4");
 }
 
 void EX()
@@ -751,7 +782,7 @@ void EX()
 				EX_cycle++;
 				break;
 				
-			case addi||lw||sw:
+			case addi:
 				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] + registers[IDEXLatch.instruction.Imm];
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
@@ -760,7 +791,27 @@ void EX()
 				EXMEMLatch.instruction = IDEXLatch.instruction;
 				EX_cycle++;
 				break;
-			
+				
+			case sw:
+				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] + registers[IDEXLatch.instruction.Imm];
+				EXMEMLatch.read = 1;
+				EXMEMLatch.write = 0;
+				IDEXLatch.write = 1;
+				IDEXLatch.read = 0;
+				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EX_cycle++;
+				break;
+				
+			case lw:
+				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] + registers[IDEXLatch.instruction.Imm];
+				EXMEMLatch.read = 1;
+				EXMEMLatch.write = 0;
+				IDEXLatch.write = 1;
+				IDEXLatch.read = 0;
+				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EX_cycle++;
+				break;
+				
 			case beq:
 				if(registers[IDEXLatch.instruction.rs] == registers[IDEXLatch.instruction.rt]){
 					pc = pc+1+IDEXLatch.instruction.Imm;
@@ -773,10 +824,19 @@ void EX()
 				EXMEMLatch.instruction = IDEXLatch.instruction;
 				EX_cycle++;
 				break;
+			case haltsimulation:
+		    	EXMEMLatch.instruction = IDEXLatch.instruction;
+		        EXMEMLatch.read = 1;
+		        EXMEMLatch.write = 0;
+		        IDEXLatch.write = 0;
+		        IDEXLatch.read = 0;    	
+		    	return 0;
 	
 		
 		}
 	}
+		if(EXMEMLatch.instruction.opcode == halt_simulation)
+		printf("halt moving");
 }
 
 
@@ -785,6 +845,7 @@ void MEM()
 	int address;
 	
 	//sign immediate and register to find address 
+	printf("\nimmediate in MEM %d\n", EXMEMLatch.instruction.Imm);
 	assert((EXMEMLatch.instruction.Imm) % 4 == 0);
 	address = EXMEMLatch.instruction.rs+(EXMEMLatch.instruction.Imm)/4;
 	if(EXMEMLatch.read && MEMWBLatch.write)
@@ -804,16 +865,15 @@ void MEM()
 			IFIDLatch.write = 1;
 			IFIDLatch.read = 0;
 		}
-		else
-		{
-			printf("error Bill Leonard");
-		}
+
 		MEMWBLatch.instruction = EXMEMLatch.instruction;
 			MEMWBLatch.read = 1;
 			MEMWBLatch.write = 0;
 			EXMEMLatch.read = 0;
 			EXMEMLatch.write = 1;
 	}
+		if(MEMWBLatch.instruction.opcode == halt_simulation)
+			printf("halt moving");
 }
 void WB()
 {
