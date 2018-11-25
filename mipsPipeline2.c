@@ -854,21 +854,19 @@ void MEM()
 		switch(EXMEMLatch.instruction.opcode)
 		{
 			case lw:
-				EXMEMLatch.regDest = dataMemory[EXMEMLatch.aluResult];
+				MEMWBLatch.writeData = dataMemory[EXMEMLatch.aluResult];
+				MEMWBLatch.regDest = EXMEMLatch.regDest;
 				MEM_cycle++;
 				break;
 			case sw:
 				dataMemory[EXMEMLatch.aluResult] = EXMEMLatch.rtData;
 				MEM_cycle++;
 				break;
+			case add||sub||mult||addi:
+				MEMWBLatch.regDest = EXMEMLatch.regDest;
+				MEMWBLatch.aluResult = EXMEMLatch.aluResult;
+				break;
 		}
-		
-		MEMWBLatch.instruction = EXMEMLatch.instruction;
-			MEMWBLatch.read = 1;
-			MEMWBLatch.write = 0;
-			EXMEMLatch.read = 0;
-			EXMEMLatch.write = 1;
-	}
 		if(MEMWBLatch.instruction.opcode == halt_simulation)
 			printf("halt moving");
 }
