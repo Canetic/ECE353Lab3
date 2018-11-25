@@ -51,11 +51,16 @@ struct inst{
 struct inst instMem[512];
 //latch struct 
 struct latch{
-	
+
 	struct inst instruction;
 	int read;
 	int write;
-	
+
+	int rsData;
+	int rtData;
+	int ImmData;
+	int regDest;
+	int aluResult;
 };
 
 //latches
