@@ -668,65 +668,39 @@ void ID()
 		//printf("\n test 2\n");
 		////// run ID ////////////////////
 		switch(IFIDLatch.instruction.opcode){
-			case add:
+			case add||sub||mult:
 				IDEXLatch.instruction = IFIDLatch.instruction;
+				IDEXLatch.rsData = registers[IFIDLatch.instruction.rs];
+				IDEXLatch.rtData = registers[IFIDLatch.instruction.rt];
 				IDEXLatch.read = 1;
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 1;
 				IFIDLatch.read = 0;
-                ID_cycle++;
+               			ID_cycle++;
 				break;
-			case sub:
+			case addi||lw:
+			printf("\n test 3\n");
 				IDEXLatch.instruction = IFIDLatch.instruction;
-				IDEXLatch.read = 1;
-				IDEXLatch.write = 0;
-				IFIDLatch.write = 1;
-				IFIDLatch.read = 0;
-                ID_cycle++;
-				break;
-			case mult:
-				IDEXLatch.instruction = IFIDLatch.instruction;
-				IDEXLatch.read = 1;
-				IDEXLatch.write = 0;
-				IFIDLatch.write = 1;
-				IFIDLatch.read = 0;
-                ID_cycle++;
-				break;
-			case sw:
-			//printf("\n test 3\n");
-				IDEXLatch.instruction = IFIDLatch.instruction;
-				IDEXLatch.read = 1;
-				IDEXLatch.write = 0;
-				IFIDLatch.write = 1;
-				IFIDLatch.read = 0;
-				ID_cycle++;
-				break;	
-			case addi:
-			//printf("\n test 3\n");
-				IDEXLatch.instruction = IFIDLatch.instruction;
+				IDEXLatch.rsData = registers[IFIDLatch.instruction.rs];
+				IDEXLatch.ImmData = registers[IFIDLatch.instruction.Imm];
+				IDEXLatch.regDest = IFIDLatch.instruction.rt;
 				IDEXLatch.read = 1;
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 1;
 				IFIDLatch.read = 0;
 				ID_cycle++;
 				break;
-			case lw:
-			//printf("\n test 3\n");
+			case sw||beq:
 				IDEXLatch.instruction = IFIDLatch.instruction;
+				IDEXLatch.rsData = registers[IFIDLatch.instruction.rs];
+				IDEXLatch.ImmData = registers[IFIDLatch.instruction.Imm];
+				IDEXLatch.rtData = registers[IFIDLatch.instruction.rt];
 				IDEXLatch.read = 1;
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 1;
 				IFIDLatch.read = 0;
 				ID_cycle++;
 				break;
-			case beq:
-	            IDEXLatch.instruction = IFIDLatch.instruction;
-				IDEXLatch.read = 1;
-				IDEXLatch.write = 0;
-				IFIDLatch.write = 0;
-				IFIDLatch.read = 1;
-                break;
-		
 			case haltsimulation:
 				IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.read = 1;
@@ -825,6 +799,7 @@ void EX()
 				EXMEMLatch.instruction = IDEXLatch.instruction;
 				EX_cycle++;
 				break;
+				
 			case haltsimulation:
 		    	EXMEMLatch.instruction = IDEXLatch.instruction;
 		        EXMEMLatch.read = 1;
@@ -839,7 +814,6 @@ void EX()
 		if(EXMEMLatch.instruction.opcode == halt_simulation)
 		printf("halt moving");
 }
-
 
 void MEM()
 {
