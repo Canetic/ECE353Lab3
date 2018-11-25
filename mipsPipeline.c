@@ -509,7 +509,9 @@ void fileParser(FILE *fp, char *fileName){
 int main(int argc, char *argv[])
 {
 	
-	
+	for (int i=0;i<32;i++){
+			registers[i]=0;
+		}
 	int sim_mode =0;
 	
 	FILE *input;
@@ -524,7 +526,7 @@ int main(int argc, char *argv[])
 	IFIDLatch.instruction.rd = 0;
 	IFIDLatch.instruction.Imm = 0;
 	IFIDLatch.instruction.result = 0;
-	IFIDLatch.read = 0;
+	IFIDLatch.read = 1;
 	IFIDLatch.write = 1;
 
 	IDEXLatch.instruction.opcode = 0;
@@ -533,7 +535,7 @@ int main(int argc, char *argv[])
 	IDEXLatch.instruction.rt = 0;
 	IDEXLatch.instruction.Imm = 0;
 	IFIDLatch.instruction.result = 0;
-	IDEXLatch.read= 0;
+	IDEXLatch.read= 1;
 	IDEXLatch.write = 1;
 	
 	EXMEMLatch.instruction.opcode = 0;
@@ -542,7 +544,7 @@ int main(int argc, char *argv[])
 	EXMEMLatch.instruction.rt = 0;
 	EXMEMLatch.instruction.Imm = 0;
 	IFIDLatch.instruction.result = 0;
-	EXMEMLatch.read = 0;
+	EXMEMLatch.read = 1;
 	EXMEMLatch.write = 1;
 	
 	MEMWBLatch.instruction.opcode = 0;
@@ -551,17 +553,17 @@ int main(int argc, char *argv[])
 	MEMWBLatch.instruction.rd = 0;
 	MEMWBLatch.instruction.Imm = 0;
 	IFIDLatch.instruction.result = 0;
-	MEMWBLatch.read = 0;
+	MEMWBLatch.read = 1;
 	MEMWBLatch.write = 1;
 	
 	
 	int cycle =0;
 	if(!halt_simulation){
-		IF();
-		ID();
-		EX();
-		MEM();
 		WB();
+		MEM();
+		EX();
+		ID();
+		IF();
 		cycle++;
 	}
 	
@@ -575,6 +577,11 @@ int main(int argc, char *argv[])
 	memUtil = (MEM_cycle)/cycle;
 	wbUtil = (WB_cycle)/cycle;	
 	
+	//debugging
+	printf("\n cycles: %d \n IF_cycle: %d\n ID_cycle: %d\n EX_cycle: %d\n MEM_cycle: %d\n WB_cycle: %d\n"
+	, cycle, IF_cycle, ID_cycle, EX_cycle, MEM_cycle, WB_cycle);
+	
+	//printf("\n cycles: %d \n exUtil: %d\n", cycle, exUtil);
 	fclose(input);
 	return 0;
 }
@@ -584,6 +591,7 @@ int main(int argc, char *argv[])
 ////////////////////////////////
 void IF()
 {
+	
 	if(IFIDLatch.write){ 
 			IF_cycle++;
 			IFIDLatch.read = 1;
@@ -599,9 +607,9 @@ void IF()
 
 void ID()
 {
-	
+	printf("\n test 1\n");
 	// have to make sure that for mul sub and add that it doesn't interfere with future counters
-	
+	printf("\n IDEXLatch.write %d && IFIDLatch.read %d\n", IDEXLatch.write,IFIDLatch.read);
 	/////////////////// structural hazards /////////////////////////////
 	if(IDEXLatch.write && IFIDLatch.read){
 		if((IFIDLatch.instruction.rs == IDEXLatch.instruction.rd)
@@ -610,7 +618,7 @@ void ID()
 		{
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
-			
+			printf("if1");
 			
 			
 		}else if((IFIDLatch.instruction.rt == IDEXLatch.instruction.rd) 
@@ -619,6 +627,7 @@ void ID()
 		{
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
+			printf("if2");
 		}
 		else if(((IDEXLatch.instruction.opcode == lw) && ((IFIDLatch.instruction.rt == IDEXLatch.instruction.rt) || (IFIDLatch.instruction.rs == IDEXLatch.instruction.rt)))
 					||((EXMEMLatch.instruction.opcode == lw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs == EXMEMLatch.instruction.rt)))
@@ -626,16 +635,18 @@ void ID()
 		{
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
+			printf("if3");
 		}
 		else if (((IDEXLatch.instruction.opcode == sw) && ((IFIDLatch.instruction.rt == IDEXLatch.instruction.rt) || (IFIDLatch.instruction.rs == IDEXLatch.instruction.rt)))
 					||((EXMEMLatch.instruction.opcode == sw) && ((IFIDLatch.instruction.rt == EXMEMLatch.instruction.rt) || (IFIDLatch.instruction.rs == EXMEMLatch.instruction.rt))))
 		{
 			IDEXLatch.read = 1;
 			IDEXLatch.write = 0;
+			printf("if4");
 		}
 		////////////structual hazards down to here//////////////
 		
-		
+		printf("\n test 2\n");
 		////// run ID ////////////////////
 		switch(IFIDLatch.instruction.opcode){
 			case add:
@@ -663,6 +674,7 @@ void ID()
                 ID_cycle++;
 				break;
 			case addi||lw||sw:
+			printf("\n test 3\n");
 				IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.read = 1;
 				IDEXLatch.write = 0;
@@ -745,15 +757,14 @@ void EX()
 				break;
 			
 			case beq:
-				if(registers[IDEXLatch.instruction.rs]==registers[IDEXLatch.instruction.rt]){
-					pc = pc+4+registers[IDEXLatch.instruction.Imm];
+				if(registers[IDEXLatch.instruction.rs] == registers[IDEXLatch.instruction.rt]){
+					pc = pc+1+IDEXLatch.instruction.Imm;
+					assert(pc<0 || pc>512);
 				}
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
-				IFIDLatch.write = 1;
-				IFIDLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
 				EX_cycle++;
 				break;
@@ -766,12 +777,11 @@ void EX()
 
 void MEM()
 {
-	//c cycles
-	
 	int address;
 	
 	//sign immediate and register to find address 
-	address = EXMEMLatch.instruction.rs+EXMEMLatch.instruction.Imm;
+	assert((EXMEMLatch.instruction.Imm) % 4 == 0);
+	address = EXMEMLatch.instruction.rs+(EXMEMLatch.instruction.Imm)/4;
 	if(EXMEMLatch.read && MEMWBLatch.write)
 		{
 		if(EXMEMLatch.instruction.opcode == lw)
@@ -783,6 +793,11 @@ void MEM()
 		{
 			dataMemory[address] = EXMEMLatch.instruction.rt;
 			MEM_cycle++;
+		}
+		else if (EXMEMLatch.instruction.opcode == beq)
+		{
+			IFIDLatch.write = 1;
+			IFIDLatch.read = 0;
 		}
 		else
 		{
