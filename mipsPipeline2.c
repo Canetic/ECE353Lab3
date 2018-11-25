@@ -672,6 +672,7 @@ void ID()
 				IDEXLatch.instruction = IFIDLatch.instruction;
 				IDEXLatch.rsData = registers[IFIDLatch.instruction.rs];
 				IDEXLatch.rtData = registers[IFIDLatch.instruction.rt];
+				IDEXLatch.regDest = IFIDLatch.instruction.rd;
 				IDEXLatch.read = 1;
 				IDEXLatch.write = 0;
 				IFIDLatch.write = 1;
@@ -740,6 +741,7 @@ void EX()
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EXMEMLatch.regDest = IDEXLatch.regDest;
 				EX_cycle++;
 				break;
 				
@@ -750,6 +752,7 @@ void EX()
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EXMEMLatch.regDest = IDEXLatch.regDest;
 				EX_cycle++;
 				break;
 
@@ -760,6 +763,7 @@ void EX()
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EXMEMLatch.regDest = IDEXLatch.regDest;
 				EX_cycle++;
 				break;
 				
@@ -799,7 +803,6 @@ void EX()
 				EXMEMLatch.instruction = IDEXLatch.instruction;
 				EX_cycle++;
 				break;
-				
 			case haltsimulation:
 		    	EXMEMLatch.instruction = IDEXLatch.instruction;
 		        EXMEMLatch.read = 1;
@@ -814,6 +817,7 @@ void EX()
 		if(EXMEMLatch.instruction.opcode == halt_simulation)
 		printf("halt moving");
 }
+
 
 void MEM()
 {
@@ -841,35 +845,39 @@ void MEM()
 				MEMWBLatch.aluResult = EXMEMLatch.aluResult;
 				break;
 		}
+		
+		MEMWBLatch.instruction = EXMEMLatch.instruction;
+			MEMWBLatch.read = 1;
+			MEMWBLatch.write = 0;
+			EXMEMLatch.read = 0;
+			EXMEMLatch.write = 1;
+	}
 		if(MEMWBLatch.instruction.opcode == halt_simulation)
 			printf("halt moving");
 }
 void WB()
 {
-	//c cycles
-	int opcode = MEMWBLatch.instruction.opcode; 
 	if(MEMWBLatch.read){
 		WB_cycle++;
-	if(opcode == add || opcode == sub || opcode == addi || opcode == mult)
-	{
-		// get actual value to put in register
-		registers[MEMWBLatch.instruction.rd] = MEMWBLatch.instruction.result;
 		
-	}
-	else if(opcode == lw)
-	{
-		registers[MEMWBLatch.instruction.rt] = MEMWBLatch.instruction.result;
-	}
-	else if(opcode == haltsimulation)
-	{
-		WB_cycle--;
-		halt_simulation =1;
-	}
-	
+		switch(MEMWBLatch.instruction.opcode)
+		{
+			case add||sub||addi||mult:
+				registers[MEMWBLatch.regDest] = MEMWBLatch.aluResult;
+				break;
+				
+			case lw:
+				registers[MEMWBLatch.regDest] = MEMWBLatch.writeData;
+				break;
+			
+			case haltsimulation:
+				halt_simulation = 1;
+				break;
+		}
+		
 		MEMWBLatch.write = 1;
 		MEMWBLatch.read = 0;
+
 	}
 	
 }
-
-
