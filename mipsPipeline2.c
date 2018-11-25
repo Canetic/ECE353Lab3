@@ -515,6 +515,10 @@ void fileParser(FILE *fp, char *fileName){
 
 int main(int argc, char *argv[])
 {
+	int sim_mode=0;//mode flag, 1 for single-cycle, 0 for batch
+	int c,m,n;
+	int i;//for loop counter
+	long mips_reg[REG_NUM];
 	
 	for (int i=0;i<32;i++){
 			registers[i]=0;
@@ -565,6 +569,51 @@ int main(int argc, char *argv[])
 	
 	
 	int cycle =0;
+	
+	for(i=1;i<argc;i++){
+		printf("%s ",argv[i]);
+	}
+	printf("\n");
+	if(argc==7){
+		if(strcmp("-s",argv[1])==0){
+			sim_mode=SINGLE;
+		}
+		else if(strcmp("-b",argv[1])==0){
+			sim_mode=BATCH;
+		}
+		else{
+			printf("Wrong sim mode chosen\n");
+			exit(0);
+		}
+		
+		m=atoi(argv[2]);
+		n=atoi(argv[3]);
+		c=atoi(argv[4]);
+		input=fopen(argv[5],"r");
+		output=fopen(argv[6],"w");
+		
+	}
+	
+	else{
+		printf("Usage: ./sim-mips -s m n c input_name output_name (single-sysle mode)\n or \n ./sim-mips -b m n c input_name  output_name(batch mode)\n");
+		printf("m,n,c stand for number of cycles needed by multiplication, other operation, and memory access, respectively\n");
+		exit(0);
+	}
+	if(input==NULL){
+		printf("Unable to open input or output file\n");
+		exit(0);
+	}
+	if(output==NULL){
+		printf("Cannot create output file\n");
+		exit(0);
+	}
+	//initialize registers and program counter
+	if(sim_mode==1){
+		for (i=0;i<REG_NUM;i++){
+			mips_reg[i]=0;
+		}
+	}
+	
 	//!halt_simulation
 	while(!halt_simulation){
 		WB();
@@ -573,6 +622,16 @@ int main(int argc, char *argv[])
 		ID();
 		IF();
 		cycle++;
+		
+		if(sim_mode==1){
+		printf("cycle: %d register value: ",cycle);
+		for (i=1;i<REG_NUM;i++){
+			printf("%d  ",mips_reg[i]);
+		}
+		printf("program counter: %d\n",pc);
+		printf("press ENTER to continue\n");
+		while(getchar() != '\n');
+		}
 	}
 	
 	//get rid of haltsimulation cycle
@@ -587,6 +646,21 @@ int main(int argc, char *argv[])
 	exUtil = (EX_cycle)/cycle;
 	memUtil = (MEM_cycle)/cycle;
 	wbUtil = (WB_cycle)/cycle;	
+	
+	if(sim_mode==0){
+		printf("program name: %s\n",argv[5]);
+		printf("stage utilization: %f  %f  %f  %f  %f \n",
+                             ifUtil, idUtil, exUtil, memUtil, wbUtil);
+                     // add the (double) stage_counter/sim_cycle for each 
+                     // stage following sequence IF ID EX MEM WB
+		
+		printf("register values ");
+		for (i=1;i<REG_NUM;i++){
+			printf("%d  ",mips_reg[i]);
+		}
+		printf("%d\n",pc);
+	
+	}
 	
 	//debugging
 	printf("\n cycles: %d \n IF_cycle: %d\n ID_cycle: %d\n EX_cycle: %d\n MEM_cycle: %d\n WB_cycle: %d\n"
