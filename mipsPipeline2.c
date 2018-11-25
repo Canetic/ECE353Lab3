@@ -753,7 +753,7 @@ void EX()
 		switch(IDEXLatch.instruction.opcode)
 		{
 			case add:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] + registers[IDEXLatch.instruction.rt];
+				EXMEMLatch.aluResult = IDEXLatch.rsData + IDEXLatch.rtData;
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
 				IDEXLatch.write = 1;
@@ -763,7 +763,7 @@ void EX()
 				break;
 				
 			case sub:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] - registers[IDEXLatch.instruction.rt];
+				EXMEMLatch.aluResult = IDEXLatch.rsData - IDEXLatch.rtData;
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
 				IDEXLatch.write = 1;
@@ -773,7 +773,7 @@ void EX()
 				break;
 
 			case mult:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] * registers[IDEXLatch.instruction.rt];
+				EXMEMLatch.aluResult = IDEXLatch.rsData * IDEXLatch.rtData;
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
 				IDEXLatch.write = 1;
@@ -782,40 +782,34 @@ void EX()
 				EX_cycle++;
 				break;
 				
-			case addi:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] + registers[IDEXLatch.instruction.Imm];
+			case addi||lw:
+				EXMEMLatch.aluResult = IDEXLatch.rsData + IDEXLatch.ImmData;
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EXMEMLatch.regDest = IDEXLatch.regDest;
 				EX_cycle++;
 				break;
 				
 			case sw:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] + registers[IDEXLatch.instruction.Imm];
+				EXMEMLatch.aluResult = IDEXLatch.rsData + IDEXLatch.ImmData;
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
 				IDEXLatch.write = 1;
 				IDEXLatch.read = 0;
 				EXMEMLatch.instruction = IDEXLatch.instruction;
+				EXMEMLatch.rtData = IDEXLatch.rtData;
 				EX_cycle++;
 				break;
-				
-			case lw:
-				IDEXLatch.instruction.result = registers[IDEXLatch.instruction.rs] + registers[IDEXLatch.instruction.Imm];
-				EXMEMLatch.read = 1;
-				EXMEMLatch.write = 0;
-				IDEXLatch.write = 1;
-				IDEXLatch.read = 0;
-				EXMEMLatch.instruction = IDEXLatch.instruction;
-				EX_cycle++;
-				break;
-				
+
 			case beq:
-				if(registers[IDEXLatch.instruction.rs] == registers[IDEXLatch.instruction.rt]){
-					pc = pc+1+IDEXLatch.instruction.Imm;
-					assert(pc<0 || pc>512);
+				if(IDEXLatch.rsData == IDEXLatch.rtData){
+					pc = pc+1+IDEXLatch.ImmData;
+					assert(pc>0 || pc<512);
+					IFIDLatch.write = 1;
+					IFIDLatch.read = 0;
 				}
 				EXMEMLatch.read = 1;
 				EXMEMLatch.write = 0;
