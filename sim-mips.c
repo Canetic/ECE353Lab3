@@ -615,8 +615,7 @@ void IF()
 				ifUsed++;
 			}
 		}
-
-		//IfId.isEmpty = 0;
+		assert(pgm_c<=maxIMAddress);
 
 	}
 	stall = 0;
@@ -737,7 +736,7 @@ void EX()
 			if(ExMem.aluResult == 0)
 			{
 				pgm_c+= ExMem.ImmData;
-
+				assert(pgm_c<=maxIMAddress && pgm_c>=0);
 				IfId = empty;
 				IdEx = empty;
 				ExMem = empty;
