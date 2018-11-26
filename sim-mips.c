@@ -603,6 +603,7 @@ void fileParser(FILE *fp, char *fileName){
 	return;
 }
 
+// fetches instruction and puts it into IFID Latch
 void IF()
 {
 	//increment prog_c if the cpu did not stall in later stages
@@ -616,7 +617,7 @@ void IF()
 				ifUsed++;
 			}
 		}
-		assert(pgm_c <= maxIMAddress);
+		assert(pgm_c <= maxIMAddress); // makes sure program counter does not exceed instructions in memory
 
 	}
 	stall = 0;
@@ -777,6 +778,7 @@ void EX()
 
 }
 
+// Accesses and stores addresses
 void Mem()
 {
 
@@ -790,7 +792,8 @@ void Mem()
 
 	if (!stall)
 	{
-
+		
+		// forwards instructions as well as stores and loads from memory
 		switch(ExMem.instruction.opcode)
 		{
 		case add:
@@ -807,15 +810,15 @@ void Mem()
 			MemWb.destination = MemWb.rtAddr;
 			//memUsed++;
 			break;
-		case lw:
-			assert((ExMem.aluResult<MAX_ADDR) && (ExMem.aluResult>=0));
+		case lw: // loads value from memory
+			assert((ExMem.aluResult<MAX_ADDR) && (ExMem.aluResult>=0)); // assertion to make sure memory address is within instruction memory
 			MemWb.memData = dataMem[ExMem.aluResult];
 			MemWb.rtAddr = ExMem.rtAddr;
 			MemWb.destination = MemWb.rtAddr;
 			memUsed++;
 			break;
-		case sw:
-			assert((ExMem.aluResult<MAX_ADDR) && (ExMem.aluResult>=0));
+		case sw: // stores value into memory
+			assert((ExMem.aluResult<MAX_ADDR) && (ExMem.aluResult>=0)); // assertion to make sure memory address is within instruction memory
 			dataMem[ExMem.aluResult] = ExMem.rtData;
 			memUsed++;
 			break;
@@ -825,17 +828,18 @@ void Mem()
 
 			break;
 		}
-		MemWb.instruction = ExMem.instruction;
+		MemWb.instruction = ExMem.instruction; // forwards instruction
 		ExMem = empty;
 	}
 
 }
 
+// takes ALU computation and writes back into registers
 void WB()
 {
 
 
-
+	// stores ALU value based on opcode
 	switch(MemWb.instruction.opcode)
 	{
 	case add:
@@ -859,7 +863,7 @@ void WB()
 
 		break;
 	}
-	if(MemWb.destination==0)
+	if(MemWb.destination==0) // makes sure mips_reg[0] is always equal to 0
 		mips_reg[0]=0;
 	//	MemWb.isEmpty = 1;
 	//	MemWb.destination = -1;
