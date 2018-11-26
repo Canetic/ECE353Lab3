@@ -809,12 +809,14 @@ void Mem()
 			//memUsed++;
 			break;
 		case lw:
+			assert(ExMem.aluResult<=MAX_ADDR);
 			MemWb.memData = dataMem[ExMem.aluResult];
 			MemWb.rtAddr = ExMem.rtAddr;
 			MemWb.destination = MemWb.rtAddr;
 			memUsed++;
 			break;
 		case sw:
+			assert(ExMem.aluResult<=MAX_ADDR);
 			dataMem[ExMem.aluResult] = ExMem.rtData;
 			memUsed++;
 			break;
