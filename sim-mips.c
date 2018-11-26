@@ -558,6 +558,8 @@ void ID()
 	default:
 		break;
 	}
+	if ((MemWb.destination==0)||(0==ExMem.destination))
+		stall=0;
 
 	if (!stall)
 	{
@@ -761,6 +763,8 @@ void WB()
 		puts("oops something went wrong");
 		break;
 	}
+	if(MemWb.destination==0)
+		mips_reg[0]=0;
 //	MemWb.isEmpty = 1;
 //	MemWb.destination = -1;
 	MemWb = empty;
@@ -869,7 +873,7 @@ int main(int argc, char *argv[])
 	                     // stage following sequence IF ID EX MEM WB
 
 			printf("register values ");
-			for (i=1;i<REG_NUM;i++){
+			for (i=0;i<REG_NUM;i++){
 				printf("%d  ",mips_reg[i]);
 			}
 			printf("\npgm_c: %d\n",pgm_c);
