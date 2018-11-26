@@ -616,8 +616,7 @@ void IF()
 				ifUsed++;
 			}
 		}
-		assert(pgm_c < maxIMAddress);
-		//IfId.isEmpty = 0;
+		assert(pgm_c <= maxIMAddress);
 
 	}
 	stall = 0;
@@ -918,7 +917,7 @@ int main(int argc, char *argv[])
 		puts("number cycles cannot be negative or zero.");
 		exit(0);
 	}
-	
+
 	/////Instruction memory/////
 
 	fileParser(input, argv[5]);
