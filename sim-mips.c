@@ -643,8 +643,7 @@ void ID()
 		break;
 	case addi:
 	case lw:
-		//		if (IfId.instruction.rs==MemWb.destination)
-		//					stall = 1;
+
 		break;
 	default:
 		break;
@@ -655,7 +654,7 @@ void ID()
 
 	if (!stall)
 	{
-		//idUsed++;
+
 		//update excounter here
 		switch(IfId.instruction.opcode)
 		{
@@ -706,7 +705,7 @@ void EX()
 {
 	//simulate execution time
 	exCounter--;
-	if (exCounter > 0){					`
+	if (exCounter > 0){
 		exUsed++;
 		stall = 1;
 	}
@@ -714,18 +713,18 @@ void EX()
 	//execute function
 	if (!stall)
 	{
-		
+
 		//run the execution for the different opcodes
 		switch(IdEx.instruction.opcode)
 		{
 		case add:
 			ExMem.aluResult = IdEx.rsData + IdEx.rtData; 	// adding rs and rt data
 			ExMem.rdAddr = IdEx.rdAddr;			// transfer the rdAddr from IdEx to ExMem
-			ExMem.destination = ExMem.rdAddr;		
+			ExMem.destination = ExMem.rdAddr;
 			exUsed++;					// ex is used so add +1
 			break;
 		case mult:
-			ExMem.aluResult = IdEx.rsData * IdEx.rtData;	// multiply rs and rt data		
+			ExMem.aluResult = IdEx.rsData * IdEx.rtData;	// multiply rs and rt data
 			ExMem.rdAddr = IdEx.rdAddr;			// transfer the rdAddr from IdEx to ExMem
 			ExMem.destination = ExMem.rdAddr;
 			exUsed++;					// ex is used so add +1
