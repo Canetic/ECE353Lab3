@@ -521,12 +521,16 @@ void IF()
 	puts("IF method");
 	if (!stall)
 	{
-		ifUsed++;
-		IfId.instruction = instMem[pgm_c++];
-		IfId.isEmpty = 0;
 
-	} else {
-		puts("stalled!!!!!!!!!!!!!!!!!!!!");
+		if(pgm_c < maxIMAddress){
+			IfId.instruction = instMem[pgm_c++];
+			if(IfId.instruction.opcode != haltsimulation){
+						ifUsed++;
+				}
+		}
+
+		//IfId.isEmpty = 0;
+
 	}
 	stall = 0;
 
@@ -873,7 +877,7 @@ int main(int argc, char *argv[])
 	                     // stage following sequence IF ID EX MEM WB
 
 			printf("register values ");
-			for (i=0;i<REG_NUM;i++){
+			for (i=1;i<REG_NUM;i++){
 				printf("%d  ",mips_reg[i]);
 			}
 			printf("\npgm_c: %d\n",pgm_c);
