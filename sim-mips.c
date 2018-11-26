@@ -14,6 +14,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <limits.h>
 
 #define SINGLE 1
 #define BATCH 0
@@ -93,7 +94,7 @@ int immediateParse(char *immediate){
 	if(isValid){
 		Imm = (int)atoi(immediate);
 		//determine if the immediate is out of bounds
-		if(abs(Imm) < 0x10000){
+		if((Imm >= SHRT_MIN) && (Imm < SHRT_MAX)){
 			return Imm;
 		}
 	}
@@ -399,7 +400,7 @@ struct inst parser(char *instStr)
 		}
 	case 'h':
 		//case for haltsimulation command, test if there are any other strings following it
-		if((strcmp(opField+1, "altsimulation") == 0) && (strtok(NULL, " ") == NULL)){
+		if((strcmp(opField+1, "altSimulation") == 0) && (strtok(NULL, " ") == NULL)){
 			instruction.opcode = haltsimulation;
 			return instruction;
 		}
@@ -438,10 +439,7 @@ struct inst parser(char *instStr)
 		instruction.Imm = immediateParse(Imm);
 		break;
 	case mult:
-		//		regFields[1] = strtok(NULL, " ");
-		//		instruction.rs = regNumberConverter(regFields[0]);
-		//		instruction.rt = regNumberConverter(regFields[1]);
-		//		break;
+
 	case add:
 	case sub:
 		regFields[1] = strtok(NULL, " ");
@@ -463,10 +461,10 @@ void fileParser(FILE *fp, char *fileName){
 	char *fmtLine;
 	line = (char *)malloc(100*sizeof(char));
 	struct inst instruction;
-	int lineNum, instrAddr;
+	int lineNum;
 
 	lineNum = 1;
-	instrAddr = 0;
+	maxIMAddress = 0;
 	while(fgets(line, 100, fp)){
 		fmtLine = (char *)malloc(100*sizeof(char));
 		//format the input instruction
@@ -475,9 +473,9 @@ void fileParser(FILE *fp, char *fileName){
 		assert(fmtLine != NULL);
 
 		//load valid instructions into the instruction memory if it isn't full
-		if((strcmp(fmtLine, "")!=0) && (instrAddr < 512)){
+		if((strcmp(fmtLine, "")!=0) && (maxIMAddress < 512)){
 			instruction = parser(fmtLine);
-			instrAddr++;
+			instMem[maxIMAddress++] = instruction;
 		}
 
 		//check for errors before continuing
@@ -489,7 +487,7 @@ void fileParser(FILE *fp, char *fileName){
 				exit(0);
 				break;
 			case 'i':
-				puts("Immediate must be and integer between -65,535 and 65,534");
+				puts("Immediate must be and integer between -32,768 and +32,767");
 				exit(0);
 				break;
 			case 'o':
@@ -508,6 +506,7 @@ void fileParser(FILE *fp, char *fileName){
 				break;
 			}
 		}
+
 		free(fmtLine);
 		lineNum++;
 	}
@@ -516,33 +515,31 @@ void fileParser(FILE *fp, char *fileName){
 	return;
 }
 
-
-
-
-int IF()
+void IF()
 {
 	//increment prog_c if the cpu did not stall in later stages
 	puts("IF method");
-	if (stall == 0)
+	if (!stall)
 	{
 		ifUsed++;
-		IfId.instruction = instMem[pgm_c];
+		IfId.instruction = instMem[pgm_c++];
 		IfId.isEmpty = 0;
-		pgm_c++;
+
 	} else {
 		puts("stalled!!!!!!!!!!!!!!!!!!!!");
 	}
 	stall = 0;
-	return 0;
+
 }
 
-int ID()
+void ID()
 {
 	puts("ID method");
 
 	//check for RAW hazards
 	switch(IfId.instruction.opcode)
 	{
+
 	case add:
 	case mult:
 	case sub:
@@ -562,7 +559,7 @@ int ID()
 		break;
 	}
 
-	if (stall == 0)
+	if (!stall)
 	{
 		idUsed++;
 		//update excounter here
@@ -608,10 +605,10 @@ int ID()
 
 	if ((IdEx.instruction.opcode == beq)||(ExMem.instruction.opcode == beq))
 		stall = 1;
-	return 0;
+
 }
 
-int EX()
+void EX()
 {
 	puts("EX method");
 
@@ -622,7 +619,7 @@ int EX()
 		stall = 1;
 
 	//execute function
-	if (stall == 0)
+	if (!stall)
 	{
 		exUsed++;
 		switch(IdEx.instruction.opcode)
@@ -647,10 +644,12 @@ int EX()
 			ExMem.ImmData = IdEx.ImmData;
 			if(ExMem.aluResult == 0)
 			{
-				pgm_c = pgm_c + ExMem.ImmData;
+				pgm_c+= ExMem.ImmData;
+
 				IfId = empty;
 				IdEx = empty;
 				ExMem = empty;
+				MemWb = empty;
 			}
 			break;
 		case addi:
@@ -681,10 +680,10 @@ int EX()
 	}
 	puts("\n");
 	printf("IdEx destination: %d\n", IdEx.destination);
-	return 0;
+
 }
 
-int Mem()
+void Mem()
 {
 	puts("Mem method");
 
@@ -694,7 +693,7 @@ int Mem()
 	if (memCounter > 0)
 		stall = 1;
 
-	if (stall == 0)
+	if (!stall)
 	{
 		memUsed++;
 		switch(ExMem.instruction.opcode)
@@ -731,10 +730,10 @@ int Mem()
 		//	ExMem.destination = -1;
 		ExMem = empty;
 	}
-	return 0;
+
 }
 
-int WB()
+void WB()
 {
 	puts("WB method");
 
@@ -765,7 +764,7 @@ int WB()
 //	MemWb.isEmpty = 1;
 //	MemWb.destination = -1;
 	MemWb = empty;
-	return 0;
+
 }
 
 int main(int argc, char *argv[])
@@ -775,31 +774,8 @@ int main(int argc, char *argv[])
 
 	FILE *input;
 	input = fopen(argv[5], "r");
-	assert(input != NULL);
-	char *line;
-	char *fmtLine;
-	line = (char *)malloc(64*sizeof(char));
-	struct inst temp;
-
-	unsigned int lineNum = 1;
-	IMAddress = 0;
-	while(fgets(line, 64, input)){
-		fmtLine = (char *)malloc(64*sizeof(char));
-		fmtLine = progScanner(strdup(line));
-		printf("%s\n", fmtLine);
 
 
-		temp = parser(fmtLine);
-		instMem[IMAddress] = temp;
-		IMAddress++;
-//		errorCheck(argv[1], lineNum, strtok(line,"\r\n"));
-		free(fmtLine);
-		lineNum++;
-	}
-	maxIMAddress = IMAddress;
-
-	free(line);
-	fclose(input);
 
 	/////CPU/////
 	IMAddress = 0;
@@ -830,11 +806,13 @@ int main(int argc, char *argv[])
 		printf("m,n,c stand for number of cycles needed by multiplication, other operation, and memory access, respectively\n");
 		exit(0);
 	}
+
+	fileParser(input, argv[5]);
+
 	//initialize registers and program counter
-	if(sim_mode==1){
-		for (i=0;i<REG_NUM;i++){
-			mips_reg[i]=0;
-		}
+
+	for (i=0;i<REG_NUM;i++){
+		mips_reg[i]=0;
 	}
 
 	//initialize empty state registers
@@ -854,7 +832,7 @@ int main(int argc, char *argv[])
 	exUsed = 0;
 	memUsed = 0;
 	wbUsed = 0;
-
+ char *inputLine;
 	while(MemWb.instruction.opcode != haltsimulation)
 	{
 		WB();
@@ -871,7 +849,8 @@ int main(int argc, char *argv[])
 			}
 			printf("program counter: %d\n",pgm_c);
 			printf("press ENTER to continue\n");
-			//while(getchar() != '\n');
+			scanf("%s", &inputLine);
+			while(*inputLine != '\n');
 		}
 		sim_cycle++;
 	}
@@ -893,10 +872,10 @@ int main(int argc, char *argv[])
 			for (i=1;i<REG_NUM;i++){
 				printf("%d  ",mips_reg[i]);
 			}
-			printf("%d\n",pgm_c);
+			printf("\npgm_c: %d\n",pgm_c);
 
 		}
 
-
+	fclose(input);
 	return 0;
 }
