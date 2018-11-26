@@ -288,7 +288,7 @@ int regNumberConverter(char *reg)
 			case 't':
 				regNum = 1;
 				break;
-			//Arguments
+				//Arguments
 			case '0':
 				regNum = 4;
 				break;
@@ -306,129 +306,129 @@ int regNumberConverter(char *reg)
 			}
 			break;
 			//Frame pointer
-		case 'f':
-			if (token[1] == 'p')
-				regNum = 30;
-			break;
-			//Global pointer
-		case 'g':
-			if (token[1] == 'p')
-				regNum = 28;
-			break;
-			//reserved for OS kernel
-		case 'k':
-			switch(token[1])
-			{
-			case '0':
-				regNum = 26;
+			case 'f':
+				if (token[1] == 'p')
+					regNum = 30;
 				break;
-			case '1':
-				regNum = 27;
+				//Global pointer
+			case 'g':
+				if (token[1] == 'p')
+					regNum = 28;
 				break;
-			default:
-				break;
-			}
-			break;
-			//Return address
-		case 'r':
-			if (token[1] == 'a')
-				regNum = 31;
-			break;
-		case 's':
-			switch(token[1])
-			{
-			//Stack pointer
-			case 'p':
-				regNum = 29;
-				break;
-			//Saved temporaries
-			case '0':
-				regNum = 16;
-				break;
-			case '1':
-				regNum = 17;
-				break;
-			case '2':
-				regNum = 18;
-				break;
-			case '3':
-				regNum = 19;
-				break;
-			case '4':
-				regNum = 20;
-				break;
-			case '5':
-				regNum = 21;
-				break;
-			case '6':
-				regNum = 22;
-				break;
-			case '7':
-				regNum = 23;
-				break;
-			default:
-				break;
-			}
-			break;
-			//temporary registers
-			case 't':
+				//reserved for OS kernel
+			case 'k':
 				switch(token[1])
 				{
 				case '0':
-					regNum = 8;
+					regNum = 26;
 					break;
 				case '1':
-					regNum = 9;
-					break;
-				case '2':
-					regNum = 10;
-					break;
-				case '3':
-					regNum = 11;
-					break;
-				case '4':
-					regNum = 12;
-					break;
-				case '5':
-					regNum = 13;
-					break;
-				case '6':
-					regNum = 14;
-					break;
-				case '7':
-					regNum = 15;
-					break;
-				case '8':
-					regNum = 24;
-					break;
-				case '9':
-					regNum = 25;
+					regNum = 27;
 					break;
 				default:
 					break;
 				}
 				break;
-				//Function or expression result
-				case 'v':
+				//Return address
+				case 'r':
+					if (token[1] == 'a')
+						regNum = 31;
+					break;
+				case 's':
 					switch(token[1])
 					{
+					//Stack pointer
+					case 'p':
+						regNum = 29;
+						break;
+						//Saved temporaries
 					case '0':
-						regNum = 2;
+						regNum = 16;
 						break;
 					case '1':
-						regNum = 3;
+						regNum = 17;
+						break;
+					case '2':
+						regNum = 18;
+						break;
+					case '3':
+						regNum = 19;
+						break;
+					case '4':
+						regNum = 20;
+						break;
+					case '5':
+						regNum = 21;
+						break;
+					case '6':
+						regNum = 22;
+						break;
+					case '7':
+						regNum = 23;
 						break;
 					default:
 						break;
 					}
 					break;
-				//if the register is zero
-				case 'z':
-					if(!strcmp(token, "zero"))
-						regNum = 0;
-					break;
-				default:
-					break;
+					//temporary registers
+					case 't':
+						switch(token[1])
+						{
+						case '0':
+							regNum = 8;
+							break;
+						case '1':
+							regNum = 9;
+							break;
+						case '2':
+							regNum = 10;
+							break;
+						case '3':
+							regNum = 11;
+							break;
+						case '4':
+							regNum = 12;
+							break;
+						case '5':
+							regNum = 13;
+							break;
+						case '6':
+							regNum = 14;
+							break;
+						case '7':
+							regNum = 15;
+							break;
+						case '8':
+							regNum = 24;
+							break;
+						case '9':
+							regNum = 25;
+							break;
+						default:
+							break;
+						}
+						break;
+						//Function or expression result
+						case 'v':
+							switch(token[1])
+							{
+							case '0':
+								regNum = 2;
+								break;
+							case '1':
+								regNum = 3;
+								break;
+							default:
+								break;
+							}
+							break;
+							//if the register is zero
+							case 'z':
+								if(!strcmp(token, "zero"))
+									regNum = 0;
+								break;
+							default:
+								break;
 		}
 	}
 
@@ -439,6 +439,7 @@ int regNumberConverter(char *reg)
 	}
 	return regNum;
 }
+
 
 struct inst parser(char *instStr)
 {
@@ -615,7 +616,8 @@ void IF()
 				ifUsed++;
 			}
 		}
-		assert(pgm_c<=maxIMAddress);
+		assert(pgm_c < maxIMAddress);
+		//IfId.isEmpty = 0;
 
 	}
 	stall = 0;
@@ -736,7 +738,7 @@ void EX()
 			if(ExMem.aluResult == 0)
 			{
 				pgm_c+= ExMem.ImmData;
-				assert(pgm_c<=maxIMAddress && pgm_c>=0);
+				assert((pgm_c < maxIMAddress) && (pgm_c>=0));
 				IfId = empty;
 				IdEx = empty;
 				ExMem = empty;
@@ -866,16 +868,11 @@ void WB()
 
 int main(int argc, char *argv[])
 {
-	/////Instruction memory/////
 
+	FILE *input=NULL;
+	FILE *output=NULL;
+	printf("The arguments are:");
 
-	FILE *input;
-	input = fopen(argv[5], "r");
-
-
-
-	/////CPU/////
-	IMAddress = 0;
 	for(i=1;i<argc;i++){
 		printf("%s ",argv[i]);
 	}
@@ -896,6 +893,9 @@ int main(int argc, char *argv[])
 		n=atoi(argv[3]);
 		c=atoi(argv[4]);
 
+		input=fopen(argv[5],"r");
+		output=fopen(argv[6],"w");
+
 	}
 
 	else{
@@ -903,11 +903,27 @@ int main(int argc, char *argv[])
 		printf("m,n,c stand for number of cycles needed by multiplication, other operation, and memory access, respectively\n");
 		exit(0);
 	}
+	if(input==NULL){
+		printf("Unable to open input or output file\n");
+		exit(0);
+	}
+	if(output==NULL){
+		printf("Cannot create output file\n");
+		exit(0);
+	}
+
+	if((m <= 0) || (n <= 0) || (c <= 0)){
+		puts("number cycles cannot be negative or zero.");
+		exit(0);
+	}
+	
+	/////Instruction memory/////
 
 	fileParser(input, argv[5]);
-
+	IMAddress = 0;
 	//initialize registers and program counter
 
+	/////CPU/////
 	for (i=0;i<REG_NUM;i++){
 		mips_reg[i]=0;
 	}
@@ -928,7 +944,7 @@ int main(int argc, char *argv[])
 	exUsed = 0;
 	memUsed = 0;
 	wbUsed = 0;
-	char *inputLine;
+
 	while(MemWb.instruction.opcode != haltsimulation)
 	{
 		WB();
@@ -937,7 +953,7 @@ int main(int argc, char *argv[])
 		ID();
 		IF();
 
-		if(sim_mode==1)
+		if(sim_mode==SINGLE)
 		{
 			printf("cycle: %d register value: ",sim_cycle);
 			for (i=1;i<REG_NUM;i++){
@@ -945,8 +961,7 @@ int main(int argc, char *argv[])
 			}
 			printf("program counter: %d\n",pgm_c);
 			printf("press ENTER to continue\n");
-			scanf("%s", &inputLine);
-			while(*inputLine != '\n');
+			while(getchar() != '\n');
 		}
 		sim_cycle++;
 	}
@@ -957,22 +972,22 @@ int main(int argc, char *argv[])
 	memUtil = memUsed/ (float) sim_cycle;
 	wbUtil = wbUsed/ (float) sim_cycle;
 
-	if(sim_mode==0){
-		printf("program name: %s\n",argv[5]);
-		printf("stage utilization: %f  %f  %f  %f  %f \n",
+	if(sim_mode==BATCH){
+		fprintf(output,"program name: %s\n",argv[5]);
+		fprintf(output,"stage utilization: %f  %f  %f  %f  %f \n",
 				ifUtil, idUtil, exUtil, memUtil, wbUtil);
 		// add the (double) stage_counter/sim_cycle for each
 		// stage following sequence IF ID EX MEM WB
 
-		printf("register values ");
+		fprintf(output,"register values ");
 		for (i=1;i<REG_NUM;i++){
-			printf("%d  ",mips_reg[i]);
+			fprintf(output,"%d  ",mips_reg[i]);
 		}
-		printf("program counter: %d\n",pgm_c);
-		printf("Cycles: %d\n", sim_cycle);
+		fprintf(output,"program counter: %d\n",pgm_c);
 
 	}
-
+	//close input and output files at the end of the simulation
 	fclose(input);
+	fclose(output);
 	return 0;
 }
