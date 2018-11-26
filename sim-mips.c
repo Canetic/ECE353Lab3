@@ -1,10 +1,10 @@
 /*
  ============================================================================
- Name        : test.c
- Author      :
- Version     : 0.6
- Copyright   : Your copyright notice
- Description :
+ Name        : sim-mips.c
+ Author      : Angus Mo, Karl Shao, Timothy Shum, O-Dom Pin
+ Version     :
+ Description : MIPS data path simulator that can run in both single cycle and
+ 	 	 	   batch mode
  ============================================================================
  */
 
@@ -19,6 +19,7 @@
 #define SINGLE 1
 #define BATCH 0
 #define REG_NUM 32
+#define MAX_ADDR 512
 
 enum op {add=0x20, addi=0x8, sub=0x22, mult=0x18, beq=0x4, lw=0x23,
 	sw=0x2b, haltsimulation=0xff};
@@ -35,7 +36,6 @@ long pgm_c=0;//program counter
 long sim_cycle=0;//simulation cycle counter
 long ifUsed, idUsed, exUsed, memUsed, wbUsed;
 float  ifUtil, idUtil, exUtil, memUtil, wbUtil;
-
 int stall;
 
 struct inst
@@ -46,8 +46,7 @@ struct inst
 	unsigned int rd;
 	int Imm;
 };
-struct inst instMem[512];
-int dataMem[512];
+
 struct stateReg
 {
 	//IfId
@@ -67,10 +66,12 @@ struct stateReg
 	int memData;
 	int memWriteAddr;
 	int writeData;
-	//empty
-	int isEmpty;
 };
 
+
+
+struct inst instMem[MAX_ADDR];
+int dataMem[MAX_ADDR];
 struct stateReg IfId, IdEx, ExMem, MemWb, empty;
 
 //Function to determine and validate the immediate field//
@@ -108,7 +109,7 @@ int parenthesisMatch(char *memField){
 	char **parenthesis;
 	parenthesis = (char **)malloc(4*sizeof(char *));
 	int i, match1,match2;
-	//mathc variables
+	//match variables
 	int p,p1,p2;
 	for(i = 0; i < 4; i++){
 		parenthesis[i] = (char *)malloc(10*sizeof(char));
@@ -518,15 +519,15 @@ void fileParser(FILE *fp, char *fileName){
 void IF()
 {
 	//increment prog_c if the cpu did not stall in later stages
-	puts("IF method");
+
 	if (!stall)
 	{
 
 		if(pgm_c < maxIMAddress){
 			IfId.instruction = instMem[pgm_c++];
 			if(IfId.instruction.opcode != haltsimulation){
-						ifUsed++;
-				}
+				ifUsed++;
+			}
 		}
 
 		//IfId.isEmpty = 0;
@@ -538,12 +539,9 @@ void IF()
 
 void ID()
 {
-	puts("ID method");
-
 	//check for RAW hazards
 	switch(IfId.instruction.opcode)
 	{
-
 	case add:
 	case mult:
 	case sub:
@@ -556,8 +554,8 @@ void ID()
 		break;
 	case addi:
 	case lw:
-//		if (IfId.instruction.rs==MemWb.destination)
-//					stall = 1;
+		//		if (IfId.instruction.rs==MemWb.destination)
+		//					stall = 1;
 		break;
 	default:
 		break;
@@ -567,7 +565,7 @@ void ID()
 
 	if (!stall)
 	{
-		idUsed++;
+		//idUsed++;
 		//update excounter here
 		switch(IfId.instruction.opcode)
 		{
@@ -577,12 +575,14 @@ void ID()
 			IdEx.rsData = mips_reg[IfId.instruction.rs];
 			IdEx.rtData = mips_reg[IfId.instruction.rt];
 			IdEx.rdAddr = IfId.instruction.rd;
+			idUsed++;
 			break;
 		case mult:
 			exCounter = m;
 			IdEx.rsData = mips_reg[IfId.instruction.rs];
 			IdEx.rtData = mips_reg[IfId.instruction.rt];
 			IdEx.rdAddr = IfId.instruction.rd;
+			idUsed++;
 			break;
 		case addi:
 		case lw:
@@ -590,6 +590,7 @@ void ID()
 			IdEx.rsData = mips_reg[IfId.instruction.rs];
 			IdEx.ImmData = IfId.instruction.Imm;
 			IdEx.rtAddr = IfId.instruction.rt;
+			idUsed++;
 			break;
 		case sw:
 		case beq:
@@ -597,16 +598,13 @@ void ID()
 			IdEx.rsData = mips_reg[IfId.instruction.rs];
 			IdEx.rtData = mips_reg[IfId.instruction.rt];
 			IdEx.ImmData = IfId.instruction.Imm;
+			idUsed++;
 			break;
 		default:
 			break;
 		}
 		IdEx.instruction = IfId.instruction;
-//		IdEx.isEmpty = 0;
-//		IfId.isEmpty = 1;
 		IfId = empty;
-	} else {
-		puts("stalled!!!");
 	}
 
 	if ((IdEx.instruction.opcode == beq)||(ExMem.instruction.opcode == beq))
@@ -616,34 +614,36 @@ void ID()
 
 void EX()
 {
-	puts("EX method");
-
 	//simulate execution time
-	if (exCounter > 0)
-		exCounter--;
-	if (exCounter > 0)
-		stall = 1;
+	exCounter--;
+	if (exCounter > 0){
+		exUsed++;}
+	if (exCounter > 0){
+		stall = 1;}
 
 	//execute function
 	if (!stall)
 	{
-		exUsed++;
+
 		switch(IdEx.instruction.opcode)
 		{
 		case add:
 			ExMem.aluResult = IdEx.rsData + IdEx.rtData;
 			ExMem.rdAddr = IdEx.rdAddr;
 			ExMem.destination = ExMem.rdAddr;
+			exUsed++;
 			break;
 		case mult:
 			ExMem.aluResult = IdEx.rsData * IdEx.rtData;
 			ExMem.rdAddr = IdEx.rdAddr;
 			ExMem.destination = ExMem.rdAddr;
+			exUsed++;
 			break;
 		case sub:
 			ExMem.aluResult = IdEx.rsData - IdEx.rtData;
 			ExMem.rdAddr = IdEx.rdAddr;
 			ExMem.destination = ExMem.rdAddr;
+			exUsed++;
 			break;
 		case beq:	//subtract and compare to zero to check for equality
 			ExMem.aluResult = IdEx.rsData - IdEx.rtData;
@@ -657,11 +657,13 @@ void EX()
 				ExMem = empty;
 				MemWb = empty;
 			}
+			exUsed++;
 			break;
 		case addi:
 			ExMem.rtAddr = IdEx.rtAddr;
 			ExMem.aluResult = IdEx.rsData + IdEx.ImmData;
 			ExMem.destination = ExMem.rtAddr;
+			exUsed++;
 			break;
 		case lw:	//determine address result
 			ExMem.rtAddr = IdEx.rtAddr;
@@ -669,39 +671,40 @@ void EX()
 			assert(ExMem.aluResult%4==0);
 			ExMem.destination = ExMem.rtAddr;
 			memCounter = c;
+			exUsed++;
 			break;
 		case sw:	//determine address result
 			ExMem.rtData = IdEx.rtData;
 			ExMem.aluResult = IdEx.rsData + IdEx.ImmData;
 			assert(ExMem.aluResult%4==0);
 			memCounter = c;
+			exUsed++;
 			break;
 		default:
+
 			break;
 		}
 		ExMem.instruction = IdEx.instruction;
-		ExMem.isEmpty = 0;
-		//	IdEx.isEmpty = 1;
 		IdEx = empty;
 	}
-	puts("\n");
-	printf("IdEx destination: %d\n", IdEx.destination);
+
 
 }
 
 void Mem()
 {
-	puts("Mem method");
+
 
 	//simulate memory time
-	if (memCounter > 0)
-		memCounter--;
-	if (memCounter > 0)
-		stall = 1;
+	memCounter--;
+	if (memCounter > 0){
+		memUsed++;}
+	if (memCounter > 0){
+		stall = 1;}
 
 	if (!stall)
 	{
-		memUsed++;
+
 		switch(ExMem.instruction.opcode)
 		{
 		case add:
@@ -710,30 +713,31 @@ void Mem()
 			MemWb.rdAddr = ExMem.rdAddr;
 			MemWb.aluResult = ExMem.aluResult;
 			MemWb.destination = MemWb.rdAddr;
+			//memUsed++;
 			break;
 		case addi:
 			MemWb.rtAddr = ExMem.rtAddr;
 			MemWb.aluResult = ExMem.aluResult;
 			MemWb.destination = MemWb.rtAddr;
+			//memUsed++;
 			break;
 		case lw:
 			MemWb.memData = dataMem[ExMem.aluResult];
 			MemWb.rtAddr = ExMem.rtAddr;
 			MemWb.destination = MemWb.rtAddr;
+			memUsed++;
 			break;
 		case sw:
 			dataMem[ExMem.aluResult] = ExMem.rtData;
+			memUsed++;
 			break;
 		case beq:
 			break;
 		default:
-			puts("oops something went wrong");
+
 			break;
 		}
 		MemWb.instruction = ExMem.instruction;
-		MemWb.isEmpty = 0;
-		//	ExMem.isEmpty = 1;
-		//	ExMem.destination = -1;
 		ExMem = empty;
 	}
 
@@ -741,7 +745,7 @@ void Mem()
 
 void WB()
 {
-	puts("WB method");
+
 
 
 	switch(MemWb.instruction.opcode)
@@ -764,13 +768,13 @@ void WB()
 	case beq:
 		break;
 	default:
-		puts("oops something went wrong");
+
 		break;
 	}
 	if(MemWb.destination==0)
 		mips_reg[0]=0;
-//	MemWb.isEmpty = 1;
-//	MemWb.destination = -1;
+	//	MemWb.isEmpty = 1;
+	//	MemWb.destination = -1;
 	MemWb = empty;
 
 }
@@ -827,7 +831,6 @@ int main(int argc, char *argv[])
 	empty.instruction.opcode = 0;
 	empty.rdAddr = -1;
 	empty.rtAddr = -1;
-	empty.isEmpty = 1;
 	empty.destination = -1;
 
 	IfId = empty;
@@ -840,7 +843,7 @@ int main(int argc, char *argv[])
 	exUsed = 0;
 	memUsed = 0;
 	wbUsed = 0;
- char *inputLine;
+	char *inputLine;
 	while(MemWb.instruction.opcode != haltsimulation)
 	{
 		WB();
@@ -870,19 +873,20 @@ int main(int argc, char *argv[])
 	wbUtil = wbUsed/ (float) sim_cycle;
 
 	if(sim_mode==0){
-			printf("program name: %s\n",argv[5]);
-			printf("stage utilization: %f  %f  %f  %f  %f \n",
-	                             ifUtil, idUtil, exUtil, memUtil, wbUtil);
-	                     // add the (double) stage_counter/sim_cycle for each
-	                     // stage following sequence IF ID EX MEM WB
+		printf("program name: %s\n",argv[5]);
+		printf("stage utilization: %f  %f  %f  %f  %f \n",
+				ifUtil, idUtil, exUtil, memUtil, wbUtil);
+		// add the (double) stage_counter/sim_cycle for each
+		// stage following sequence IF ID EX MEM WB
 
-			printf("register values ");
-			for (i=1;i<REG_NUM;i++){
-				printf("%d  ",mips_reg[i]);
-			}
-			printf("\npgm_c: %d\n",pgm_c);
-
+		printf("register values ");
+		for (i=1;i<REG_NUM;i++){
+			printf("%d  ",mips_reg[i]);
 		}
+		printf("program counter: %d\n",pgm_c);
+		printf("Cycles: %d\n", sim_cycle);
+
+	}
 
 	fclose(input);
 	return 0;
