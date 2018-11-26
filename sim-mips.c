@@ -259,17 +259,89 @@ int regNumberConverter(char *reg)
 		return regNum;
 	}
 	//determine the register value if it is numerical
-	if((atoi(token) <= 25 && atoi(token) >= 10) || !strcmp(token, "0") || !strcmp(token, "8") || !strcmp(token, "9"))
+	if(((atoi(token) <= 31) && (atoi(token) >= 10)))
 	{
 		regNum = atoi(token);
 	} else {
 		//determine the register value if it is symbolic
 		switch(token[0])
 		{
-		//save registers
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			if (strlen(token) == 1)
+			{
+				regNum = atoi(token);
+			}
+			break;
+		case 'a':
+			switch(token[1])
+			{
+			//Assembler temporary
+			case 't':
+				regNum = 1;
+				break;
+			//Arguments
+			case '0':
+				regNum = 4;
+				break;
+			case '1':
+				regNum = 5;
+				break;
+			case '2':
+				regNum = 6;
+				break;
+			case '3':
+				regNum = 7;
+				break;
+			default:
+				break;
+			}
+			break;
+			//Frame pointer
+		case 'f':
+			if (token[1] == 'p')
+				regNum = 30;
+			break;
+			//Global pointer
+		case 'g':
+			if (token[1] == 'p')
+				regNum = 28;
+			break;
+			//reserved for OS kernel
+		case 'k':
+			switch(token[1])
+			{
+			case '0':
+				regNum = 26;
+				break;
+			case '1':
+				regNum = 27;
+				break;
+			default:
+				break;
+			}
+			break;
+			//Return address
+		case 'r':
+			if (token[1] == 'a')
+				regNum = 31;
+			break;
 		case 's':
 			switch(token[1])
 			{
+			//Stack pointer
+			case 'p':
+				regNum = 29;
+				break;
+			//Saved temporaries
 			case '0':
 				regNum = 16;
 				break;
@@ -336,6 +408,20 @@ int regNumberConverter(char *reg)
 					break;
 				}
 				break;
+				//Function or expression result
+				case 'v':
+					switch(token[1])
+					{
+					case '0':
+						regNum = 2;
+						break;
+					case '1':
+						regNum = 3;
+						break;
+					default:
+						break;
+					}
+					break;
 				//if the register is zero
 				case 'z':
 					if(!strcmp(token, "zero"))
