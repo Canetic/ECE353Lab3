@@ -634,8 +634,10 @@ void ID()
 	case sub:
 	case beq:
 	case sw:
+		//make sure that the instruction's rs doesn't use the rd
 		if ((IfId.instruction.rs==MemWb.destination)||(IfId.instruction.rs==ExMem.destination))
 			stall = 1;
+		//make sure that the instruction's rt doesn't use the rd
 		if ((IfId.instruction.rt==MemWb.destination)||(IfId.instruction.rt==ExMem.destination))
 			stall = 1;
 		break;
@@ -647,6 +649,7 @@ void ID()
 	default:
 		break;
 	}
+	//if its a zero register no need to stall
 	if ((MemWb.destination==0)||(0==ExMem.destination))
 		stall=0;
 
@@ -659,41 +662,41 @@ void ID()
 		case add:
 		case sub:
 			exCounter = n;
-			IdEx.rsData = mips_reg[IfId.instruction.rs];
+			IdEx.rsData = mips_reg[IfId.instruction.rs];		//get the register's data at that register
 			IdEx.rtData = mips_reg[IfId.instruction.rt];
-			IdEx.rdAddr = IfId.instruction.rd;
-			idUsed++;
+			IdEx.rdAddr = IfId.instruction.rd;			// put the rd register into the next latch
+			idUsed++;						// id is used so add +1
 			break;
 		case mult:
 			exCounter = m;
-			IdEx.rsData = mips_reg[IfId.instruction.rs];
+			IdEx.rsData = mips_reg[IfId.instruction.rs];		//get the register's data at that register
 			IdEx.rtData = mips_reg[IfId.instruction.rt];
-			IdEx.rdAddr = IfId.instruction.rd;
-			idUsed++;
+			IdEx.rdAddr = IfId.instruction.rd;			// put the rd register into the next latch
+			idUsed++;						// id is used so add +1
 			break;
 		case addi:
 		case lw:
 			exCounter = n;
-			IdEx.rsData = mips_reg[IfId.instruction.rs];
-			IdEx.ImmData = IfId.instruction.Imm;
-			IdEx.rtAddr = IfId.instruction.rt;
-			idUsed++;
+			IdEx.rsData = mips_reg[IfId.instruction.rs];		//get the register's data at that register
+			IdEx.ImmData = IfId.instruction.Imm;			// transfer the IfId's Imm to IdEx's ImmData latch
+			IdEx.rtAddr = IfId.instruction.rt;			// put the rd register into the next latch
+			idUsed++;						// id is used so add +1
 			break;
 		case sw:
 		case beq:
 			exCounter = n;
-			IdEx.rsData = mips_reg[IfId.instruction.rs];
-			IdEx.rtData = mips_reg[IfId.instruction.rt];
+			IdEx.rsData = mips_reg[IfId.instruction.rs];		//get the register's data at that register
+			IdEx.rtData = mips_reg[IfId.instruction.rt];		// transfer the IfId's Imm to IdEx's ImmData latch
 			IdEx.ImmData = IfId.instruction.Imm;
-			idUsed++;
+			idUsed++;						// id is used so add +1
 			break;
 		default:
 			break;
 		}
-		IdEx.instruction = IfId.instruction;
-		IfId = empty;
+		IdEx.instruction = IfId.instruction;			//transfer the instruction to the next latch
+		IfId = empty;						// reset the IfId latch
 	}
-
+	// have to stall if the opcode is beq because of the branching
 	if ((IdEx.instruction.opcode == beq)||(ExMem.instruction.opcode == beq))
 		stall = 1;
 
@@ -703,33 +706,35 @@ void EX()
 {
 	//simulate execution time
 	exCounter--;
-	if (exCounter > 0){
+	if (exCounter > 0){					`
 		exUsed++;
-		stall = 1;}
+		stall = 1;
+	}
 
 	//execute function
 	if (!stall)
 	{
-
+		
+		//run the execution for the different opcodes
 		switch(IdEx.instruction.opcode)
 		{
 		case add:
-			ExMem.aluResult = IdEx.rsData + IdEx.rtData;
-			ExMem.rdAddr = IdEx.rdAddr;
-			ExMem.destination = ExMem.rdAddr;
-			exUsed++;
+			ExMem.aluResult = IdEx.rsData + IdEx.rtData; 	// adding rs and rt data
+			ExMem.rdAddr = IdEx.rdAddr;			// transfer the rdAddr from IdEx to ExMem
+			ExMem.destination = ExMem.rdAddr;		
+			exUsed++;					// ex is used so add +1
 			break;
 		case mult:
-			ExMem.aluResult = IdEx.rsData * IdEx.rtData;
-			ExMem.rdAddr = IdEx.rdAddr;
+			ExMem.aluResult = IdEx.rsData * IdEx.rtData;	// multiply rs and rt data		
+			ExMem.rdAddr = IdEx.rdAddr;			// transfer the rdAddr from IdEx to ExMem
 			ExMem.destination = ExMem.rdAddr;
-			exUsed++;
+			exUsed++;					// ex is used so add +1
 			break;
 		case sub:
-			ExMem.aluResult = IdEx.rsData - IdEx.rtData;
-			ExMem.rdAddr = IdEx.rdAddr;
+			ExMem.aluResult = IdEx.rsData - IdEx.rtData;	// subtract rs and rt data
+			ExMem.rdAddr = IdEx.rdAddr;			// transfer the rdAddr from IdEx to ExMem
 			ExMem.destination = ExMem.rdAddr;
-			exUsed++;
+			exUsed++;					// ex is used so add +1
 			break;
 		case beq:	//subtract and compare to zero to check for equality
 			ExMem.aluResult = IdEx.rsData - IdEx.rtData;
@@ -737,7 +742,7 @@ void EX()
 			if(ExMem.aluResult == 0)
 			{
 				pgm_c+= ExMem.ImmData;
-				assert((pgm_c < maxIMAddress) && (pgm_c>=0));
+				assert((pgm_c < maxIMAddress) && (pgm_c>=0));		// make sure that the program counter doesn't gp negative nor overflow
 				IfId = empty;
 				IdEx = empty;
 				ExMem = empty;
@@ -745,7 +750,7 @@ void EX()
 			}
 			exUsed++;
 			break;
-		case addi:
+		case addi:	//determine added results
 			ExMem.rtAddr = IdEx.rtAddr;
 			ExMem.aluResult = IdEx.rsData + IdEx.ImmData;
 			ExMem.destination = ExMem.rtAddr;
@@ -770,8 +775,8 @@ void EX()
 
 			break;
 		}
-		ExMem.instruction = IdEx.instruction;
-		IdEx = empty;
+		ExMem.instruction = IdEx.instruction;			//transfer IdEx instructions to ExMem
+		IdEx = empty;						// reset the IdEx
 	}
 
 
